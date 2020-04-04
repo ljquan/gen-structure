@@ -1,5 +1,5 @@
 {
-  "name": "@tencent/gen-structure",
+  "name": "gen-structure",
   "version": "0.0.1",
   "description": "gen-structure",
   "main": "./src/run.js",
