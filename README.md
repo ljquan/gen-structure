@@ -10,6 +10,19 @@ npm i gen-structure -g #安装
 gen-structure # 在你的目录下执行
 ```
 
+## 效果
+默认会生成`structure.md`文件,如下
+```md
+`./structure.md`	`./src/run.js`	入口文件<br><br>
+`./src/run.js`	入口文件<br>
+## ./src/api
+`./src/api/fs.js`	通用文件系统能力<br>
+`./src/api/string.js`	字符串处理<br>
+
+<br>create by [gen-structure](https://github.com/ljquan/gen-structure.git)
+```
+
+
 Usage: gen-structure [options]
 
 Options:
@@ -18,5 +31,4 @@ Options:
   -p, --path <type>     项目路径，默认命令行所在路径
   -e, --exclude <type>  忽略的路径，默认点开头、node_module的路径
   -i, --include <type>  加入被默认忽略的路径
-  -s, --suffix <type>   支持的文件后缀名。默认：ts，js，css，scss等s结尾的文件
   -h, --help            output usage information

@@ -26,11 +26,17 @@ async function getDocument(file){
   const doc = await apiFs.readLine(file, 50);
   const lines = doc.split(/\s*[\r\n]+\s*/);
   let arr = [];
+  let commentStart = false;
   for(let str of lines){
     if(/\s*import\s|require\(|^@use|^@import/.test(str) || !str){
       continue;
     }
-    if(!/^\/{2,}|^\/\*|^\*|<!-{2,}|[\u4e00-\u9fa5]+/.test(str)){
+
+    if(/^\/\*|<!-{2,}/.test(str)){
+      commentStart = true;
+    }else if(/\*{1,}\/|-{2,}>/.test(str) && commentStart){
+      commentStart = false;
+    } else if(!(/^\/{2,}/.test(str) || commentStart)){
       break;
     }
     const text = str.replace(regComment, '').trim();
@@ -45,21 +51,15 @@ async function getDocument(file){
   return arr[0] && arr[0].text;
 }
 
-let suffix;
-
 async function genStructure(dir, deep = 0, opt){
-  suffix = suffix || opt.suffix;
-  let str = '';
+  let strList = [];
   const fileList = apiFs.getFile(dir);
   const dirList = apiFs.getDir(dir);
   for(let file of fileList){
-    if(suffix && !suffix.test(file)){
-      continue;
-    }
     const text = await getDocument(path.join(dir, file));
     // console.log('text', text);
     if(text){
-      str += '`' + path.join(dir, file) + `\` ${text.replace(/@\w+/, '')}<br>\n`;
+      strList.push('`' + path.join(dir, file) + `\`\t${text.replace(/@\w+/, '')}<br>`);
     }
   }
 
@@ -70,18 +70,34 @@ async function genStructure(dir, deep = 0, opt){
       }
     }
     // console.log('subDir', subDir);
-    const struct = await genStructure(path.resolve(dir, subDir), deep+1);
+    let struct = await genStructure(path.resolve(dir, subDir), deep+1);
     if(struct){
-      str += Array(deep+1).fill('#').join('') + ' ' + path.join(dir, subDir) + '\n';
-      str += struct;
+      let index = '';
+      let dirNum = 0;
+      struct = struct.filter(file=>{
+        if(/index\.[^\///\.]+$/.test(file) && !index){
+          index = file;
+          return false;
+        }else if(!file.includes('`\t')){
+          dirNum ++;
+        }
+        return true;
+      });
+      let dirDoc = Array(deep+1).fill('#').join('') + ' ' + path.join(dir, subDir);
+      if(index){
+        strList.push(dirDoc + ` ${index.split('`\t')[1]}`); // 文件描述用 `\t 分割
+      }else if(struct.length > 1 && dirNum !== 1){ // 只有一个子目录或者只有一个文件，不打印目录
+        strList.push(dirDoc);
+      }
+      strList = strList.concat(struct);
     }
   }
-  return str;
+  return strList;
 }
 
 
 module.exports = async function run(dir, opt){
   const myDir = path.resolve(dir);
   const struct = await genStructure(myDir, 0, opt);
-  return struct.replace(new RegExp(myDir.replace(path.sep, '\\' + path.sep), 'g'), '.');
+  return struct.join('\n').replace(new RegExp(myDir.replace(path.sep, '\\' + path.sep), 'g'), '.');
 }

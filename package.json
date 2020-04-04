@@ -1,17 +1,21 @@
 {
   "name": "gen-structure",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "gen-structure",
   "main": "./src/run.js",
   "scripts": {
     "test": "node index"
   },
+  "files": [
+    "src",
+    "index.js"
+  ],
   "bin": {
     "gen-structure": "./index.js"
   },
   "repository": {
     "type": "git",
-    "url": "http://git.code.oa.com/novel/gen-structure.git"
+    "url": "https://github.com/ljquan/gen-structure.git"
   },
   "author": "",
   "license": "ISC",
