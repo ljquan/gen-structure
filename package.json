@@ -1,0 +1,22 @@
+{
+  "name": "@tencent/gen-structure",
+  "version": "0.0.1",
+  "description": "gen-structure",
+  "main": "./src/run.js",
+  "scripts": {
+    "test": "node index"
+  },
+  "bin": {
+    "gen-structure": "./index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://git.code.oa.com/novel/gen-structure.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "commander": "^2.20.0",
+    "fs-extra": "^7.0.1"
+  }
+}
