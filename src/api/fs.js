@@ -102,6 +102,8 @@ function readLine(file, number){
         input:fRead,
         terminal: true
     });
+    // 避免处理图片文件自动退出
+    objReadline.on('SIGTSTP', function () {});
     objReadline.on('line',function (line) {
       str += line + '\n';
       no++;

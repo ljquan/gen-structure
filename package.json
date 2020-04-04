@@ -1,6 +1,6 @@
 {
   "name": "gen-structure",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "gen-structure",
   "main": "./src/run.js",
   "scripts": {
@@ -17,7 +17,7 @@
     "type": "git",
     "url": "https://github.com/ljquan/gen-structure.git"
   },
-  "author": "",
+  "author": "liquid",
   "license": "ISC",
   "dependencies": {
     "commander": "^2.20.0",

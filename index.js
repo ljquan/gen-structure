@@ -36,13 +36,12 @@ if(program.include){
 option.exclude = new RegExp(exclude, 'i');
 
 
-
 run(dir, option).then(str=>{
   let dist = program.dist;
   if(!dist){
     dist = path.resolve(process.cwd(), './structure.md');
   }
-  apiFs.writeFileSync(dist, str+ '\n\n<br>create by [gen-structure](https://github.com/ljquan/gen-structure.git)');
+  apiFs.writeFileSync(dist, str + `\n\n<br>create by [${packageJson.name}@${packageJson.author}](${packageJson.repository.url})`);
   console.log(str);
   console.log('处理完成', dist);
 });
