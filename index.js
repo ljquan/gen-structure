@@ -41,7 +41,53 @@ run(dir, option).then(str=>{
   if(!dist){
     dist = path.resolve(process.cwd(), './structure.md');
   }
-  apiFs.writeFileSync(dist, str + `\n\n<br>create by [${packageJson.name}@${packageJson.author}](${packageJson.repository.url})`);
+  apiFs.writeFileSync(dist, str + `
+
+
+
+
+<style>
+a{
+  font-family:Arial,"PingFang SC","Microsoft YaHei",sans-serif,"Apple Color Emoji","Segoe UI Emoji";
+  text-decoration: none!important;
+}
+a:hover{
+  text-decoration: none!important;
+}
+h1 a{
+    font-size: 26px;
+}
+h2 a{
+    font-size: 22px;
+}
+h3 a{
+    font-size: 18px;
+}
+h4 a{
+    font-size: 14px;
+}
+h5, h6, h7{
+    font-size: 12px;
+}
+h8, h9, h10{
+    font-size: 10px;
+}
+h1 {
+    font-size: 14px;
+}
+h2 {
+    font-size: 14px;
+}
+h3 {
+    font-size: 14px;
+}
+h4 {
+    font-size: 14px;
+}
+</style> <br>
+
+
+create by [${packageJson.name}@${packageJson.author}](${packageJson.repository.url})`);
   console.log(str);
   console.log('处理完成', dist);
 });
