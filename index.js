@@ -88,6 +88,6 @@ h4 {
 
 
 create by [${packageJson.name}@${packageJson.author}](${packageJson.repository.url})`);
-  console.log(str);
+  // console.log(str);
   console.log('处理完成', dist);
 });

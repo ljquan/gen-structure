@@ -4,7 +4,10 @@ const fs = require('fs');
 const path = require('path');
 
 const regComment = /\/{2,}|\/[\*]+|[\*]+\/|^\s*[\*]+|[\*]+\s*|<!-{2,}|-{2,}>/g;
-
+/**
+ * 计算注释文本属于介绍该代码文件说明的可能性的权重（概率）
+ * @param {string} text 文本
+ */
 function getWeight(text) {
   if (/模块|组件|@desc/.test(text)) {
     return 10;
@@ -21,9 +24,12 @@ function getWeight(text) {
   }
   return 0;
 }
-
+/**
+ * 获取一个文件的说明注释
+ * @param {string} file 文件
+ */
 async function getDocument(file) {
-  const doc = await apiFs.readLine(file, 50);
+  const doc = apiFs.readFileSync(file);///\d+\.\d+\./.test(file) ? apiFs.readFileSync(file) : await apiFs.readLine(file, 50);
   const lines = doc.split(/\s*[\r\n]+\s*/);
   let arr = [];
   let commentStart = false;
@@ -51,13 +57,20 @@ async function getDocument(file) {
   return arr[0] && arr[0].text;
 }
 
+/**
+ * 生成项目结构
+ * @param {string} dir 目录地址
+ * @param {number} deep 目录深度（根目录为0）
+ * @param {Object} opt 选项
+ */
 async function genStructure(dir, deep = 0, opt) {
+  console.log('processing', dir);
   let strList = [];
   const fileList = apiFs.getFile(dir);
   const dirList = apiFs.getDir(dir);
   const textList = [];
   for (let file of fileList) {
-    if (/\.(ico|svg|png|jpg|png|exe|jpeg|md|json|d\.ts|html)$/.test(file)) { // 跳过非代码文件
+    if (/\.(ico|svg|png|jpg|png|exe|jpeg|md|json|d\.ts|html|DS_Store|editorconfig|gitignore|mp3|zip)$/.test(file)) { // 跳过非代码文件
       // console.log('file', file);
       continue;
     }
@@ -88,7 +101,7 @@ async function genStructure(dir, deep = 0, opt) {
       }
     }
     // console.log('subDir', subDir);
-    let struct = await genStructure(path.resolve(dir, subDir), deep + 1);
+    let struct = await genStructure(path.resolve(dir, subDir), deep + 1, opt);
     if (struct) {
       let index = '';
       let dirNum = 0;
@@ -123,7 +136,11 @@ async function genStructure(dir, deep = 0, opt) {
   return strList;
 }
 
-
+/**
+ * 运行
+ * @param {string} dir 目录地址
+ * @param {Object} opt 选项
+ */
 module.exports = async function run(dir, opt) {
   // console.log('run', dir, opt);
   const myDir = path.resolve(dir);

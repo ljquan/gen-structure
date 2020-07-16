@@ -1,6 +1,6 @@
 {
   "name": "gen-structure",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "gen-structure",
   "main": "./src/run.js",
   "scripts": {

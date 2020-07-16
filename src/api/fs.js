@@ -88,7 +88,7 @@ function append(src, content, reg, target) {
   writeFileSync(target || src, data);
 }
 /**
- *
+ * 按行读取（不要用于min文件一行内容太多，导致读取缓慢）
  * @param {string} file 文件
  * @param {number} number 行数
  */
