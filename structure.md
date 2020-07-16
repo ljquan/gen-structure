@@ -2,7 +2,6 @@
 ## [./src/api](./src/api)
 [├───fs.js](./src/api/fs.js)	通用文件系统能力<br>
 [└───string.js](./src/api/string.js)	字符串处理<br>
-[./src/public/flexible.js](./src/public/flexible.js)	iOS下，对于2和3的屏，用2倍的方案，其余的用1倍方案<br>
 
 
 
