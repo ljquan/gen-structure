@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// 命令行处理
 const program = require('commander');
 const path = require('path');
 const packageJson = require('./package.json');

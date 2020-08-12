@@ -19,10 +19,10 @@ function getWeight(text) {
   if (/用|是|为/.test(text)) {
     return 8;
   }
-  if (/[\u4e00-\u9fa5]/.test(text)) {
+  if (/[\u4e00-\u9fa5]/.test(text) && !/上午|下午/.test(text)) { // 自动生成注释可能包含中文时间
     return 7;
   }
-  return 0;
+  return text.length > 50 ? 0 : text.length / 50;
 }
 /**
  * 获取一个文件的说明注释
@@ -33,23 +33,36 @@ async function getDocument(file) {
   const lines = doc.split(/\s*[\r\n]+\s*/);
   let arr = [];
   let commentStart = false;
+  let deductWeight = 0;
+
   for (let str of lines) {
-    if (/\s*import\s|require\(|^@use|^@import/.test(str) || !str) {
+    if (/\s*import\s|require\(|^@use|^@import|[=]|const|let|var|import/.test(str) || !str) {// 注释的代码
       continue;
     }
 
-    if (/^\/\*|<!-{2,}/.test(str)) {
-      commentStart = true;
-    } else if (/\*{1,}\/|-{2,}>/.test(str) && commentStart) {
-      commentStart = false;
-    } else if (!(/^\/{2,}/.test(str) || commentStart)) {
+    if(deductWeight > 10){
       break;
+    }
+
+    if (/\/\*|<!-{2,}/.test(str)) {
+      commentStart = true;
+      deductWeight++;  // 段注释减一
+    } else if (/\*{1,}\/|-{2,}>/.test(str)) {
+      commentStart = false;
+    }
+    if (!(/^\/{2,}/.test(str) || commentStart)) {// 非注释
+      continue;
     }
     const text = str.replace(regComment, '').trim();
     if (text && !(/eslint|@ts|lint/.test(text) && !/[\u4e00-\u9fa5]/.test(text))) {
+      let weight = getWeight(text);
+      if(!commentStart && weight){
+        deductWeight++; // 行注释，有权重，加一
+      }
+      weight -= deductWeight;
       arr.push({
         text,
-        weight: getWeight(text)
+        weight,
       });
     }
   }
@@ -70,7 +83,11 @@ async function genStructure(dir, deep = 0, opt) {
   const dirList = apiFs.getDir(dir);
   const textList = [];
   for (let file of fileList) {
-    if (/\.(ico|svg|png|jpg|png|exe|jpeg|md|json|d\.ts|html|DS_Store|editorconfig|gitignore|mp3|zip)$/.test(file)) { // 跳过非代码文件
+    // if (/\.(ico|svg|png|jpg|png|exe|jpeg|md|json|d\.ts|html|DS_Store|editorconfig|gitignore|mp3|zip|sql|min\..*)$/.test(file)) { // 跳过非代码文件
+    //   // console.log('file', file);
+    //   continue;
+    // }
+    if (!/\.(js|ts|css|scss|less|sass|sh)$/.test(file) || /\.(min\..*)$/.test(file)) { // 跳过非代码文件
       // console.log('file', file);
       continue;
     }
@@ -103,7 +120,7 @@ async function genStructure(dir, deep = 0, opt) {
     // console.log('subDir', subDir);
     let struct = await genStructure(path.resolve(dir, subDir), deep + 1, opt);
     if (struct) {
-      let index = '';
+      let index = ''; // 目录中的index文件描述，如果有，可用于描述当前目录说明
       let dirNum = 0;
       struct = struct.filter(file => {
         if (/index\.[^\///\.]+$/.test(file) && !index) {
@@ -119,7 +136,7 @@ async function genStructure(dir, deep = 0, opt) {
       const pathStr = `[${dirDoc}](${dirDoc})`;
       if (index) {
         if (struct.length > 1) {
-          strList.push(`${head}${pathStr} ${index.split(')\t')[1]}`); // 文件描述用 )\t 分割
+          strList.push(`${head}${pathStr} ${index.split(')\t')[1] || ''}`); // 文件描述用 )\t 分割
         } else {
           strList.push(`${struct.length > 1 ? head : ''}${pathStr} ${index.split(')\t')[1]}`); // 文件描述用 )\t 分割
         }
