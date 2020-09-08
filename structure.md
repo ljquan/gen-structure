@@ -2,17 +2,17 @@
 
 ```plantuml
 @startuml
-[index.js] -down-> [commander]
-[index.js] -down-> [path]
-[index.js] -down-> [package.json]
-[index.js] -up-> [src/api/fs.js]
-[index.js] -down-> [src/run]
-[src/run.js] -up-> [src/api/fs.js]
-[src/run.js] -down-> [fs]
-[src/run.js] -down-> [path]
-[src/api/fs.js] -down-> [fs-extra]
-[src/api/fs.js] -down-> [path]
-[src/api/fs.js] -down-> [readline]
+[index] -up-> [commander]
+[index] -up-> [path]
+[index] -up-> [package.json]
+[index] -up-> [src/api/fs]
+[index] -up-> [src/run]
+[src/run] -up-> [src/api/fs]
+[src/run] -up-> [fs]
+[src/run] -up-> [path]
+[src/api/fs] -up-> [fs-extra]
+[src/api/fs] -up-> [path]
+[src/api/fs] -up-> [readline]
 @enduml
 ```
 

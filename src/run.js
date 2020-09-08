@@ -215,18 +215,19 @@ async function genStructure(dir, deep = 0, opt) {
   return strList;
 }
 
+const extReg = /\.ts|\.js$/;
 function getRelateUML() {
   const list = [];
   const cwd = process.cwd();
   for (const key of Object.keys(relativeMap)) {
-    let name = key.includes(cwd) ? path.relative(cwd, key) : key;
+    let name = key.includes(cwd) ? path.relative(cwd, key).replace(extReg, '') : key;
     let i = 0;
     for (const rel of Object.keys(relativeMap[key])) {
-      let relName = key.includes(cwd) ? path.relative(cwd, rel) : rel;
+      let relName = key.includes(cwd) ? path.relative(cwd, rel).replace(extReg, '') : rel;
       if(rel in relativeMap){
         list.push(`[${name}] -up-> [${relName}]`);
-      } else if(rel === relName || !/ts$|js$/.test(relName)){
-        list.push(`[${name}] -down-> [${relName}]`);
+      } else if(rel === relName || !/ts$|js$/.test(rel)){
+        list.push(`[${name}] -up-> [${relName}]`);
       }else if (i%2) {
         i++;
         list.push(`[${name}] -left-> [${relName}]`);
