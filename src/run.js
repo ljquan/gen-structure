@@ -36,23 +36,27 @@ async function getDocument(file) {
   let deductWeight = 0;
 
   for (let str of lines) {
-    if (/\s*import\s|require\(|^@use|^@import|[=]|const|let|var|import/.test(str) || !str) {// 注释的代码
+    // 先处理注释
+    if (/\/\*|<!-{2,}/.test(str)) {
+      if (!/\*{1,}\/|-{2,}>/.test(str)) { // 非单行的注释
+        commentStart = true;
+        deductWeight++;  // 段单行注释减一
+      }
+    } else if (/\*{1,}\/|-{2,}>/.test(str)) {
+      commentStart = false;
+    } else if (!(/^\/{2,}/.test(str) || commentStart)) {// 非注释
+      continue;
+    }
+    // 跳过注释的代码
+    if (/\s*import\s|require\(|^@use|^@import|[=]|const|let|var|import/.test(str) || !str) {
       continue;
     }
 
+    // 如果权重太小，就不处理了
     if(deductWeight > 10){
       break;
     }
 
-    if (/\/\*|<!-{2,}/.test(str)) {
-      commentStart = true;
-      deductWeight++;  // 段注释减一
-    } else if (/\*{1,}\/|-{2,}>/.test(str)) {
-      commentStart = false;
-    }
-    if (!(/^\/{2,}/.test(str) || commentStart)) {// 非注释
-      continue;
-    }
     const text = str.replace(regComment, '').trim();
     if (text && !(/eslint|@ts|lint/.test(text) && !/[\u4e00-\u9fa5]/.test(text))) {
       let weight = getWeight(text);
@@ -118,6 +122,7 @@ async function genStructure(dir, deep = 0, opt) {
       }
     }
     // console.log('subDir', subDir);
+    // 生成子目录
     let struct = await genStructure(path.resolve(dir, subDir), deep + 1, opt);
     if (struct) {
       let index = ''; // 目录中的index文件描述，如果有，可用于描述当前目录说明
