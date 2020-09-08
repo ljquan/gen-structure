@@ -1,7 +1,7 @@
 // 入口文件
-const apiFs = require('./api/fs.js');
-const fs = require('fs');
-const path = require('path');
+const apiFs = require("./api/fs.js");
+const fs = require("fs");
+const path = require("path");
 
 const regComment = /\/{2,}|\/[\*]+|[\*]+\/|^\s*[\*]+|[\*]+\s*|<!-{2,}|-{2,}>/g;
 /**
@@ -19,7 +19,8 @@ function getWeight(text) {
   if (/用|是|为/.test(text)) {
     return 8;
   }
-  if (/[\u4e00-\u9fa5]/.test(text) && !/上午|下午/.test(text)) { // 自动生成注释可能包含中文时间
+  if (/[\u4e00-\u9fa5]/.test(text) && !/上午|下午/.test(text)) {
+    // 自动生成注释可能包含中文时间
     return 7;
   }
   return text.length > 50 ? 0 : text.length / 50;
@@ -29,7 +30,7 @@ function getWeight(text) {
  * @param {string} file 文件
  */
 async function getDocument(file) {
-  const doc = apiFs.readFileSync(file);///\d+\.\d+\./.test(file) ? apiFs.readFileSync(file) : await apiFs.readLine(file, 50);
+  const doc = apiFs.readFileSync(file); ///\d+\.\d+\./.test(file) ? apiFs.readFileSync(file) : await apiFs.readLine(file, 50);
   const lines = doc.split(/\s*[\r\n]+\s*/);
   let arr = [];
   let commentStart = false;
@@ -38,29 +39,40 @@ async function getDocument(file) {
   for (let str of lines) {
     // 先处理注释
     if (/\/\*|<!-{2,}/.test(str)) {
-      if (!/\*{1,}\/|-{2,}>/.test(str)) { // 非单行的注释
+      if (!/\*{1,}\/|-{2,}>/.test(str)) {
+        // 非单行的注释
         commentStart = true;
-        deductWeight++;  // 段单行注释减一
+        deductWeight++; // 段单行注释减一
       }
     } else if (/\*{1,}\/|-{2,}>/.test(str)) {
       commentStart = false;
-    } else if (!(/^\/{2,}/.test(str) || commentStart)) {// 非注释
+    } else if (!(/^\/{2,}/.test(str) || commentStart)) {
+      // 非注释
+      addRelate(file, str);
       continue;
     }
     // 跳过注释的代码
-    if (/\s*import\s|require\(|^@use|^@import|[=]|const|let|var|import/.test(str) || !str) {
+    if (
+      /\s*import\s|require\(|^@use|^@import|[=]|const|let|var|import/.test(
+        str
+      ) ||
+      !str
+    ) {
       continue;
     }
 
     // 如果权重太小，就不处理了
-    if(deductWeight > 10){
+    if (deductWeight > 10) {
       break;
     }
 
-    const text = str.replace(regComment, '').trim();
-    if (text && !(/eslint|@ts|lint/.test(text) && !/[\u4e00-\u9fa5]/.test(text))) {
+    const text = str.replace(regComment, "").trim();
+    if (
+      text &&
+      !(/eslint|@ts|lint/.test(text) && !/[\u4e00-\u9fa5]/.test(text))
+    ) {
       let weight = getWeight(text);
-      if(!commentStart && weight){
+      if (!commentStart && weight) {
         deductWeight++; // 行注释，有权重，加一
       }
       weight -= deductWeight;
@@ -74,6 +86,33 @@ async function getDocument(file) {
   return arr[0] && arr[0].text;
 }
 
+const requireReg = /require\(['"`]([^'"`]+)['"`]\)/;
+const importReg = /import[^'"`]+['"`]([^'"`]+)['"`]/;
+// 注释
+const relativeMap = {};
+/**
+ * 获取代码引用关系
+ * @param {string} file 当前文件
+ * @param {string} str 代码
+ */
+function addRelate(file, str) {
+  let match = str.match(requireReg);
+  if (!match) {
+    match = str.match(importReg);
+  }
+  if (!match) {
+    return;
+  }
+
+  if (!(file in relativeMap)) {
+    relativeMap[file] = {};
+  }
+  let name = /[\.\/\\]/.test(match[1][0])
+    ? path.resolve(path.parse(file).dir, match[1])
+    : match[1];
+  relativeMap[file][name] = 1;
+}
+
 /**
  * 生成项目结构
  * @param {string} dir 目录地址
@@ -81,7 +120,7 @@ async function getDocument(file) {
  * @param {Object} opt 选项
  */
 async function genStructure(dir, deep = 0, opt) {
-  console.log('processing', dir);
+  console.log("processing", dir);
   let strList = [];
   const fileList = apiFs.getFile(dir);
   const dirList = apiFs.getDir(dir);
@@ -91,7 +130,11 @@ async function genStructure(dir, deep = 0, opt) {
     //   // console.log('file', file);
     //   continue;
     // }
-    if (!/\.(js|ts|css|scss|less|sass|sh)$/.test(file) || /\.(min\..*)$/.test(file)) { // 跳过非代码文件
+    if (
+      !/\.(js|ts|css|scss|less|sass|sh)$/.test(file) ||
+      /\.(min\..*)$/.test(file)
+    ) {
+      // 跳过非代码文件
       // console.log('file', file);
       continue;
     }
@@ -107,13 +150,19 @@ async function genStructure(dir, deep = 0, opt) {
   textList.forEach(([text, file, filePath], i) => {
     // 处理文件 - 说明
     if (last > 0) {
-      const tree = (i < last ? '├' : '└') + Array(deep + 1).fill('─').join('');
+      const tree =
+        (i < last ? "├" : "└") +
+        Array(deep + 1)
+          .fill("─")
+          .join("");
       const pathStr = `[${tree}${file}](${filePath})`;
-      strList.push(`${pathStr}\t${text.replace(/@\w+/, '')}<br>`);
-    }else{
-      strList.push(`[${filePath}](${filePath})\t${text.replace(/@\w+/, '')}<br>`);
+      strList.push(`${pathStr}\t${text.replace(/@\w+/, "")}<br>`);
+    } else {
+      strList.push(
+        `[${filePath}](${filePath})\t${text.replace(/@\w+/, "")}<br>`
+      );
     }
-  })
+  });
 
   for (let subDir of dirList) {
     if (opt && opt.exclude && opt.exclude.test(subDir)) {
@@ -125,27 +174,35 @@ async function genStructure(dir, deep = 0, opt) {
     // 生成子目录
     let struct = await genStructure(path.resolve(dir, subDir), deep + 1, opt);
     if (struct) {
-      let index = ''; // 目录中的index文件描述，如果有，可用于描述当前目录说明
+      let index = ""; // 目录中的index文件描述，如果有，可用于描述当前目录说明
       let dirNum = 0;
-      struct = struct.filter(file => {
+      struct = struct.filter((file) => {
         if (/index\.[^\///\.]+$/.test(file) && !index) {
           index = file;
           return false;
-        } else if (!file.includes(')\t')) {
+        } else if (!file.includes(")\t")) {
           dirNum++;
         }
         return true;
       });
-      const head = Array(deep + 1).fill('#').join('') + ' ';
+      const head =
+        Array(deep + 1)
+          .fill("#")
+          .join("") + " ";
       const dirDoc = path.join(dir, subDir);
       const pathStr = `[${dirDoc}](${dirDoc})`;
       if (index) {
         if (struct.length > 1) {
-          strList.push(`${head}${pathStr} ${index.split(')\t')[1] || ''}`); // 文件描述用 )\t 分割
+          strList.push(`${head}${pathStr} ${index.split(")\t")[1] || ""}`); // 文件描述用 )\t 分割
         } else {
-          strList.push(`${struct.length > 1 ? head : ''}${pathStr} ${index.split(')\t')[1]}`); // 文件描述用 )\t 分割
+          strList.push(
+            `${struct.length > 1 ? head : ""}${pathStr} ${
+              index.split(")\t")[1]
+            }`
+          ); // 文件描述用 )\t 分割
         }
-      } else if (struct.length > 1 && dirNum !== 1) { // 只有一个子目录或者只有一个文件，不打印目录
+      } else if (struct.length > 1 && dirNum !== 1) {
+        // 只有一个子目录或者只有一个文件，不打印目录
         strList.push(head + pathStr);
       }
       strList = strList.concat(struct);
@@ -153,9 +210,39 @@ async function genStructure(dir, deep = 0, opt) {
   }
   last = strList.length - 1;
   if (last > -1) {
-    strList[last] = strList[last].replace('├', '└');
+    strList[last] = strList[last].replace("├", "└");
   }
   return strList;
+}
+
+function getRelateUML() {
+  const list = [];
+  const cwd = process.cwd();
+  for (const key of Object.keys(relativeMap)) {
+    let name = key.includes(cwd) ? path.relative(cwd, key) : key;
+    let i = 0;
+    for (const rel of Object.keys(relativeMap[key])) {
+      let relName = key.includes(cwd) ? path.relative(cwd, rel) : rel;
+      if(rel in relativeMap){
+        list.push(`[${name}] -up-> [${relName}]`);
+      } else if(rel === relName || !/ts$|js$/.test(relName)){
+        list.push(`[${name}] -down-> [${relName}]`);
+      }else if (i%2) {
+        i++;
+        list.push(`[${name}] -left-> [${relName}]`);
+      } else {
+        i++;
+        list.push(`[${name}] -right-> [${relName}]`);
+      }
+
+    }
+  }
+  return `
+\`\`\`plantuml
+@startuml
+${list.join('\n')}
+@enduml
+\`\`\``;
 }
 
 /**
@@ -167,6 +254,12 @@ module.exports = async function run(dir, opt) {
   // console.log('run', dir, opt);
   const myDir = path.resolve(dir);
   const struct = await genStructure(myDir, 0, opt);
-  // console.log('struct', struct);
-  return struct.join('\n').replace(new RegExp(myDir.replace(path.sep, '\\' + path.sep), 'g'), '.');
-}
+  // console.log("relativeMap", getRelateUML());
+  return `# 依赖关系
+${getRelateUML()}
+
+# 代码说明
+${struct
+    .join("\n")
+    .replace(new RegExp(myDir.replace(path.sep, "\\" + path.sep), "g"), ".")}`;
+};
