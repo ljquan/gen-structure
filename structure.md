@@ -2,16 +2,26 @@
 
 ```plantuml
 @startuml
-[index] -up-> [commander]
-[index] -up-> [path]
-[index] -up-> [package.json]
-[index] -up-> [src/api/fs]
 [index] -up-> [src/run]
+
 [src/run] -up-> [src/api/fs]
-[src/run] -up-> [fs]
-[src/run] -up-> [path]
+
 [src/api/fs] -up-> [fs-extra]
+
+[index] -up-> [src/api/fs]
+
+[index] -up-> [commander]
+
+[index] -up-> [path]
+
+[index] -up-> [package.json]
+
+[src/run] -up-> [fs]
+
+[src/run] -up-> [path]
+
 [src/api/fs] -up-> [path]
+
 [src/api/fs] -up-> [readline]
 @enduml
 ```

@@ -88,6 +88,7 @@ async function getDocument(file) {
 
 const requireReg = /require\(['"`]([^'"`]+)['"`]\)/;
 const importReg = /import[^'"`]+['"`]([^'"`]+)['"`]/;
+const jsExtReg = /\.ts|\.js$/;
 // 注释
 const relativeMap = {};
 /**
@@ -96,6 +97,9 @@ const relativeMap = {};
  * @param {string} str 代码
  */
 function addRelate(file, str) {
+  if(!jsExtReg.test(file)){
+    return
+  }
   let match = str.match(requireReg);
   if (!match) {
     match = str.match(importReg);
@@ -215,35 +219,73 @@ async function genStructure(dir, deep = 0, opt) {
   return strList;
 }
 
-const extReg = /\.ts|\.js$/;
+
+const umlMap = [];
+
 function getRelateUML() {
   const list = [];
   const cwd = process.cwd();
   for (const key of Object.keys(relativeMap)) {
-    let name = key.includes(cwd) ? path.relative(cwd, key).replace(extReg, '') : key;
-    let i = 0;
+    let name = key.includes(cwd) ? path.relative(cwd, key).replace(jsExtReg, '') : key;
     for (const rel of Object.keys(relativeMap[key])) {
-      let relName = key.includes(cwd) ? path.relative(cwd, rel).replace(extReg, '') : rel;
-      if(rel in relativeMap){
-        list.push(`[${name}] -up-> [${relName}]`);
-      } else if(rel === relName || !/ts$|js$/.test(rel)){
-        list.push(`[${name}] -up-> [${relName}]`);
-      }else if (i%2) {
-        i++;
-        list.push(`[${name}] -left-> [${relName}]`);
-      } else {
-        i++;
-        list.push(`[${name}] -right-> [${relName}]`);
-      }
+      let relName = key.includes(cwd) ? path.relative(cwd, rel).replace(jsExtReg, '') : rel;
+      list.push(`[${name}] -up-> [${relName}]`);
 
+      let hasAdd = false;
+      umlMap.forEach(arr=>{
+        if(arr[0] ===relName){
+          arr.unshift(name);
+          hasAdd = true;
+        }else if(arr[arr.length-1] === name){
+          arr.push(relName);
+          hasAdd = true;
+        }
+      });
+      if(!hasAdd){
+        umlMap.push([name, relName]);
+      }
     }
   }
+  const umlArr = umlMap.sort((a,b)=>b.length-a.length);
+  console.log(clustering(umlArr));
+  return clustering(umlArr).map(item=>getUMLString(item)).join('\n');
+}
+
+function getUMLString(list){
   return `
 \`\`\`plantuml
 @startuml
-${list.join('\n')}
+${list.join('\n\n')}
 @enduml
 \`\`\``;
+}
+
+function clustering(arr, res=[]){
+  if(arr.length === 0){
+    return res;
+  }
+  const dict = {};
+  const list = [];
+  const dot = arr[0][0];
+  const line = {};
+  const left = arr.filter(a=>{
+    if(a[0] === dot || (res.length > 2  && a.some(k=>k in dict)) || a[0] in dict){
+      a.forEach((item, idx)=>{
+        if(idx){
+          dict[item] = 1;
+          const str = `[${a[idx-1]}] -up-> [${item}]`;
+          if(!line[str] ){
+            line[str] = 1;
+            list.push(str);
+          }
+        }
+      });
+      return false;
+    }
+    return true;
+  });
+  res.push(list);
+  return clustering(left, res);
 }
 
 /**
