@@ -5,6 +5,7 @@ const path = require('path');
 const packageJson = require('./package.json');
 const apiFs = require('./src/api/fs.js');
 const run = require('./src/run');
+const Processor = require('./src/processor');
 
 
 program
@@ -37,7 +38,7 @@ if(program.include){
 option.exclude = new RegExp(exclude, 'i');
 
 
-run(dir, option).then(str=>{
+new Processor(dir, option).run().then(str=>{
   let dist = program.dist;
   if(!dist){
     dist = path.resolve(process.cwd(), './structure.md');

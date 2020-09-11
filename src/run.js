@@ -248,14 +248,14 @@ function getRelateUML() {
   }
   const umlArr = umlMap.sort((a,b)=>b.length-a.length);
   console.log(clustering(umlArr));
-  return clustering(umlArr).map(item=>getUMLString(item)).join('\n');
+  return clustering(umlArr).map(item=>getUMLString(item)).join('\n\n');
 }
 
 function getUMLString(list){
   return `
 \`\`\`plantuml
 @startuml
-${list.join('\n\n')}
+${list.join('\n')}
 @enduml
 \`\`\``;
 }

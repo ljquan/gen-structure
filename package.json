@@ -4,7 +4,8 @@
   "description": "gen-structure",
   "main": "./src/run.js",
   "scripts": {
-    "test": "node index"
+    "test": "jest",
+    "jw": "jest --watchAll"
   },
   "files": [
     "src",
@@ -22,5 +23,11 @@
   "dependencies": {
     "commander": "^2.20.0",
     "fs-extra": "^7.0.1"
+  },
+  "jest": {
+    "testRegex": "/test/.*.test.jsx?$"
+  },
+  "devDependencies": {
+    "jest": "^26.4.2"
   }
 }
