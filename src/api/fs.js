@@ -44,6 +44,44 @@ function getFile(dir) {
   return results;
 }
 
+//获取当前目录下的文件及文件夹
+function getFileAndDir(dir, filter) {
+  let results = [];
+  let dirList = [];
+  let list = fs.readdirSync(dir);
+  filter = filter || (() => true);
+  list.forEach(function (file) {
+    let stat = fs.statSync(dir + '/' + file);
+    if (stat && stat.isDirectory()){
+      dirList.push(file);
+    }else if(stat && stat.isFile()){
+      const absPath = path.resolve(dir, file);
+      if(filter(absPath)){
+        results.push({
+          path: absPath,
+          type: 'file',
+          name: file,
+        });
+      }
+    }
+  });
+  // 按字母顺序排
+  results = results.sort(function(a,b){return a.name.localeCompare(b.name)});
+  dirList = dirList.sort(function(a,b){return a.localeCompare(b)});
+  for(const file of dirList){
+    const absPath = path.resolve(dir, file);
+    if(filter(absPath)){
+      results.push({
+        path: absPath,
+        type: 'dir',
+        name: file,
+      });
+      results = results.concat(getFileAndDir(absPath, filter));
+    }
+  }
+  return results;
+}
+
 //获取该目录下文件名及其内容，返回一个对象，{文件名： '文件内容'};
 function getFileDict(dir) {
   const results = getFile(dir);
@@ -129,6 +167,7 @@ module.exports = {
   readPwdFile,
   writeFileSync,
   append,
-  readLine
+  readLine,
+  getFileAndDir,
 };
 
