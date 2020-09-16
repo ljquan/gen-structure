@@ -3,6 +3,11 @@ const apiFs = require("./api/fs.js");
 const fs = require("fs");
 const path = require("path");
 
+const regAnnotation = /"([^\\\"]*(\\.)?)*"|'([^\\\']*(\\.)?)*'|`([^\\\`]*(\\.)?)*`|\/{2,}.*(?=[\r\n])|\/{2,}[^\r\n]*|\/\*[\s\S]*?\*\//g;
+
+const tagRE = /(?:<!--[\S\s]*?-->|<%((?!%>)[\s\S])*%>|<(?:<%((?!%>)[\s\S])*%>|"[^"]*<%((?!%>)[\s\S])*%>[^"]*"|'[^']*<%((?!%>)[\s\S])*%>[^']*'|"[^"]*"['"]*|'[^']*'['"]*|[^'">])+>)/g;
+
+
 const regComment = /\/{2,}|\/[\*]+|[\*]+\/|^\s*[\*]+|[\*]+\s*|<!-{2,}|-{2,}>/g;
 
 const requireReg = /require\(['"`]([^'"`]+)['"`]\)/;
@@ -15,86 +20,200 @@ module.exports = class AbstractProcessor {
     this.dir = path.resolve(dir);
     this.opt = opt;
     this.umlMap = [];
-    this.astParse = Object.assign({
-      comment(line){
-
+    const reg = this.astReg = [
+      {
+        name: 'string',
+        reg: /"([^\"]*(\\.)?)*"|'([^\']*(\\.)?)*'|`([^\`]*(\\.)?)*`/,
+        weight: 3,
       },
-      class(line){
-
+      {
+        name: 'comment',
+        reg: /\/{2,}.*(?=[\r\n])|\/{2,}[^\r\n]*|\/\*[\s\S]*?\*\//,
+        fun: (str) => {
+          return str.replace(/[\/]+[\*]*|[\*]*\//g, '').trim().split(/\n/)[0].replace(/^[*\s]+|\s+$/g, '');
+        },
+        weight: 2,
       },
-      method(line){
-
+      {
+        name: 'regexp',
+        reg: /(?!\/\/)\/[^\n]+\//,
+        weight: 4,
       },
-      import(line){
-
+      {
+        name: 'require',
+        reg: /\brequire\(['"`]([^'"`]+)['"`]\)/,
+        weight: 0,
+        fun: str => {
+          const arr = str.match(/\(['"`]([^'"`\s]+)['"`]\)/);
+          return arr && arr[1] || ''
+        }
       },
-      export(line){
-
+      {
+        name: 'import',
+        reg: /\bimport\s[^'"`]+['"`]([^'"`]+)['"`]/,
+        weight: 0,
+        fun: str => {
+          const arr = str.match(/['"`]([^'"`\s]+)['"`]/);
+          return arr && arr[1] || ''
+        }
       },
-    }, opt.astParse);
-    // 需要按照先comment, 后代码的顺序
-    this.astKey = ['comment'].concat(Object.keys(this.astParse).filter(key=>key!=='comment'));
-
-    // 注释
-    this.relativeMap = {};
+      {
+        // export * from 'xx'
+        name: 'export-import',
+        reg: /\bexport\s[^'"`]+\sfrom\s['"`]([^'"`\s]+)['"`]/,
+        weight: 0,
+        fun: str => {
+          const arr = str.match(/['"`]([^'"`\s]+)['"`]/);
+          return arr && arr[1] || ''
+        }
+      },
+      {
+        // 括号
+        name: 'brackets',
+        reg: /[\{\}]/,
+        weight: 0,
+        fun: str => str
+      }
+    ];
+    const regStr = reg.sort((a, b) => b.weight - a.weight).map(item => {
+      const regStr = item.reg.toString().slice(1, -1);
+      item.reg$ = new RegExp(`^(${regStr})$`);
+      return regStr;
+    }).join('|');
+    // console.log(regStr);
+    this.parseReg = new RegExp(regStr, 'g');
   }
 
-  getAst(line){
-    const list = [];
-    // 这里简单处理。假设一行里面最多存在2种语句。代码+注释，或者只有类声明，或者只有函数声明
-    for(const key of this.astKey){
-      const item = this.astParse[key](line);
-      if(!item){
-        continue;
-      }
-      if(item.append){
-        list.push(append);
+  parse(text) {
+    let list = [];
+    let lastEndPos = 0;
+    // 数字列表
+    const numList = [];
+    // 符号列表
+    const symbolList = [];
+    text.replace(this.parseReg, (str, ...args) => {
+      const pos = args[args.length - 2];
+      // 上次结束的位置为本次开始位置
+      const startPos = lastEndPos;
+      const skipStr = text.substring(startPos, pos);
+      lastEndPos = pos + str.length;
+
+      // 通过类似中序转后续的方式解析出括号与定义之间的关系
+      if (str === '{') {
+        let item = null;
+        // 解析出类
+        let arr = skipStr.match(/\bclass\s(\b[^\s]+\b)/);
+        if (arr) {
+          item = {
+            type: 'class',
+            name: arr[1],
+            constent: arr[0],
+            pos: startPos + (arr.index || 1),
+            searchStartPost: startPos,
+            searchEndPost: lastEndPos,
+            children: []
+          };
+        } else {
+          arr = skipStr.match(/\bfunction\s(\b[^\s\(\)]+\b)\s*\([^\(\)]*\)\s*$/) ||
+            //箭头函数
+            skipStr.match(/(\b[^\s\(\)]+\b)\s*=[^\(\)]+\([^\(\)]*\)\s*=>\s*$/);
+          if (numList.length && !arr) {
+            // 类/对象函数
+            arr = skipStr.match(/(\b[^\s\(\)]+\b)\s*\([^\(\)]*\)\s*$/);
+            if (arr && ['if', 'switch', 'with', 'catch', 'for', 'while', 'void'].indexOf(arr[1]) !== -1) {
+              arr = null;
+            }
+          }
+          if (arr) {
+            item = {
+              type: 'function',
+              name: arr[1],
+              content: arr[0],
+              pos: startPos + (arr.index || 1),
+              searchStartPost: startPos,
+              searchEndPost: lastEndPos,
+            };
+          } else {
+            arr = skipStr.match(/\b([^\s=]+)\s*=\s*$/);
+            if (arr) {
+              item = {
+                type: 'object',
+                name: arr[1],
+                content: arr[0].replace(/\s*=\s*$/, ''),
+                pos: startPos + (arr.index || 1),
+                searchStartPost: startPos,
+                searchEndPost: lastEndPos,
+              };
+            }
+          }
+        }
+        if (item) {
+          // 确保纯粹。不会在他上面多一行代码
+          if (skipStr.trim().indexOf('\n') === -1 && list.length) {
+            // 这种情况下，上一个comment，大概率是该class或function的注释
+            const lastItem = list[list.length - 1];
+            if (lastItem.type === 'comment' && lastItem.searchEndPost === item.searchStartPost) {
+              list.pop();
+              item.comment = lastItem;
+            }
+          }
+          numList.push(item);
+        } else {
+          numList.push({
+            pos: pos,
+            txt: skipStr
+          });
+        }
+        symbolList.push('{');
+        return;
+      } else if (str === '}') {
+        symbolList.pop();
+        const item = numList.pop();
+        if (item) {
+          list = list.filter(o => {
+            if ((o.type === 'comment' && o.pos > item.pos)) {
+              return false;
+            }
+            return true;
+          });
+          if (item.type) {
+            if (numList.length) {
+              const parent = numList[numList.length - 1];
+              parent.children = parent.children || [];
+              parent.children.push(item);
+            } else {
+              list.push(item);
+            }
+          }
+        }
+        return;
       }
 
-      if(item.remain){
-        line = item.remain;
-      }else{
-        break;
+      // 其他情况
+      for (const item of this.astReg) {
+        if (item.reg$.test(str)) {
+          if (item.fun) {
+            list.push({
+              pos,
+              type: item.name,
+              content: item.fun(str),
+              searchStartPost: startPos,
+              searchEndPost: lastEndPos,
+            });
+          }
+          return '';
+        }
       }
-    }
+    });
     return list;
   }
 
-  /**
-   * 把文本处理成类似AST的结构
-   * @param {string} text 文本
-   */
-  parse(text){
-    const lines = text.split(/\s*[\r\n]+\s*/);
-    const blockList = [];
-    const rsp = [];
-    const astParse = this.astParse;
-    let block = {};
-    for(const line of lines){
-      const astList = this.getAst(line);
-      for(const ast of astList){
-        if(ast.action==='push'){
-          blockList.push(ast);
-        }else if(ast.action==='pop' && blockList.length > 0){
-          let astTmp = blockList.pop();
-          let blist = [];
-          while(astTmp && astTmp.actionTag !== astTmp.actionTag){
-            blist.push(astTmp);
-            astTmp = blockList.pop();
-          }
-          astTmp.children = blist.reverse();
-        }else{
-          rsp.push(ast);
-        }
-      }
-    }
-    return rsp;
-  }
+
   /**
    * 处理的文件(代码文件)
    * @param {string} name
    */
-  acceptFile(name){
+  acceptFile(name) {
     return /\.ts$|\.js$/.test(name);
   }
   /**
@@ -111,7 +230,7 @@ module.exports = class AbstractProcessor {
    * 过滤掉不关注的目录，如.git等
    * @param {string} absPath
    */
-  pathFilter(absPath){
+  pathFilter(absPath) {
     const opt = this.opt || {
       exclude: /\.git|.vscode|node_modules/
     };
@@ -123,17 +242,17 @@ module.exports = class AbstractProcessor {
     return true;
   }
 
-  getFiles(){
+  getFiles() {
     const list = apiFs.getFileAndDir(this.dir, this.pathFilter.bind(this));
     const newList = [];
-    for(const item of list){
-      if(item.type === 'file'){
-        if(this.acceptFile(item.name)){
+    for (const item of list) {
+      if (item.type === 'file') {
+        if (this.acceptFile(item.name)) {
           newList.push(Object.assign({}, item, {
             ast: this.parse(apiFs.readFileSync(item.path)),
           }));
         }
-      }else{
+      } else {
         newList.push(item);
       }
     }
@@ -177,7 +296,7 @@ ${list.join("\n")}
 @enduml
 \`\`\``;
   }
-  getDetail(){
+  getDetail() {
     return '';
   }
   get structure() {
