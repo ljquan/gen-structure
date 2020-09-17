@@ -7,7 +7,6 @@ const regAnnotation = /"([^\\\"]*(\\.)?)*"|'([^\\\']*(\\.)?)*'|`([^\\\`]*(\\.)?)
 
 const tagRE = /(?:<!--[\S\s]*?-->|<%((?!%>)[\s\S])*%>|<(?:<%((?!%>)[\s\S])*%>|"[^"]*<%((?!%>)[\s\S])*%>[^"]*"|'[^']*<%((?!%>)[\s\S])*%>[^']*'|"[^"]*"['"]*|'[^']*'['"]*|[^'">])+>)/g;
 
-
 const regComment = /\/{2,}|\/[\*]+|[\*]+\/|^\s*[\*]+|[\*]+\s*|<!-{2,}|-{2,}>/g;
 
 const requireReg = /require\(['"`]([^'"`]+)['"`]\)/;
@@ -15,73 +14,80 @@ const importReg = /import[^'"`]+['"`]([^'"`]+)['"`]/;
 const jsExtReg = /\.ts|\.js$/;
 
 module.exports = class AbstractProcessor {
-
   constructor(dir, opt) {
     this.dir = path.resolve(dir);
     this.opt = opt;
     this.umlMap = [];
-    const reg = this.astReg = [
+    const reg = (this.astReg = [
       {
-        name: 'string',
+        name: "string",
         reg: /"([^\"]*(\\.)?)*"|'([^\']*(\\.)?)*'|`([^\`]*(\\.)?)*`/,
         weight: 3,
       },
       {
-        name: 'comment',
+        name: "comment",
         reg: /\/{2,}.*(?=[\r\n])|\/{2,}[^\r\n]*|\/\*[\s\S]*?\*\//,
-        fun: (str) => {
-          return str.replace(/[\/]+[\*]*|[\*]*\//g, '').trim().split(/\n/)[0].replace(/^[*\s]+|\s+$/g, '');
-        },
+        fun: (str) => str,
+        // {
+        //   return str
+        //     .replace(/[\/]+[\*]*|[\*]*\//g, "")
+        //     .trim()
+        //     .split(/\n/)[0]
+        //     .replace(/^[*\s]+|\s+$/g, "");
+        // },
         weight: 2,
       },
       {
-        name: 'regexp',
+        name: "regexp",
         reg: /(?!\/\/)\/[^\n]+\//,
         weight: 4,
       },
       {
-        name: 'require',
+        name: "require",
         reg: /\brequire\(['"`]([^'"`]+)['"`]\)/,
         weight: 0,
-        fun: str => {
+        fun: (str) => {
           const arr = str.match(/\(['"`]([^'"`\s]+)['"`]\)/);
-          return arr && arr[1] || ''
-        }
+          return (arr && arr[1]) || "";
+        },
       },
       {
-        name: 'import',
+        name: "import",
         reg: /\bimport\s[^'"`]+['"`]([^'"`]+)['"`]/,
         weight: 0,
-        fun: str => {
+        fun: (str) => {
           const arr = str.match(/['"`]([^'"`\s]+)['"`]/);
-          return arr && arr[1] || ''
-        }
+          return (arr && arr[1]) || "";
+        },
       },
       {
         // export * from 'xx'
-        name: 'export-import',
+        name: "export-import",
         reg: /\bexport\s[^'"`]+\sfrom\s['"`]([^'"`\s]+)['"`]/,
         weight: 0,
-        fun: str => {
+        fun: (str) => {
           const arr = str.match(/['"`]([^'"`\s]+)['"`]/);
-          return arr && arr[1] || ''
-        }
+          return (arr && arr[1]) || "";
+        },
       },
       {
         // 括号
-        name: 'brackets',
+        name: "brackets",
         reg: /[\{\}]/,
         weight: 0,
-        fun: str => str
-      }
-    ];
-    const regStr = reg.sort((a, b) => b.weight - a.weight).map(item => {
-      const regStr = item.reg.toString().slice(1, -1);
-      item.reg$ = new RegExp(`^(${regStr})$`);
-      return regStr;
-    }).join('|');
+        fun: (str) => str,
+      },
+    ]);
+    const regStr = reg
+      .sort((a, b) => b.weight - a.weight)
+      .map((item) => {
+        const regStr = item.reg.toString().slice(1, -1);
+        item.reg$ = new RegExp(`^(${regStr})$`);
+        return regStr;
+      })
+      .join("|");
     // console.log(regStr);
-    this.parseReg = new RegExp(regStr, 'g');
+    this.parseReg = new RegExp(regStr, "g");
   }
 
   parse(text) {
@@ -99,48 +105,59 @@ module.exports = class AbstractProcessor {
       lastEndPos = pos + str.length;
 
       // 通过类似中序转后续的方式解析出括号与定义之间的关系
-      if (str === '{') {
+      if (str === "{") {
         let item = null;
         // 解析出类
-        let arr = skipStr.match(/\bclass\s(\b[^\s]+\b)/);
+        let arr = skipStr.match(/[^;\n]*\bclass\s(\b[^\s]+\b)/);
         if (arr) {
           item = {
-            type: 'class',
+            type: "class",
             name: arr[1],
             constent: arr[0],
-            pos: startPos + (arr.index || 1),
+            pos: startPos + (arr.index || 0),
             searchStartPost: startPos,
             searchEndPost: lastEndPos,
-            children: []
+            children: [],
           };
         } else {
-          arr = skipStr.match(/\bfunction\s(\b[^\s\(\)]+\b)\s*\([^\(\)]*\)\s*$/) ||
-            //箭头函数
-            skipStr.match(/(\b[^\s\(\)]+\b)\s*=[^\(\)]+\([^\(\)]*\)\s*=>\s*$/);
+          arr =
+            // function name(){}
+            skipStr.match(/\b[^;\n]*function\s(\b[^\s\(\)]+\b)\s*\([^\(\)]*\)\s*$/) ||
+            // const a = function(){}
+            skipStr.match(
+              /[^;\n]*(\b[^\s\(\)]+\b)\s*=\s*\bfunction\s*\([^\(\)]*\)\s*$/
+            ) ||
+            //const a = ()=>{}
+            skipStr.match(/[^;\n]*(\b[^\s\(\)]+\b)\s*=[^\(\)]+\([^\(\)]*\)\s*=>\s*$/);
           if (numList.length && !arr) {
             // 类/对象函数
-            arr = skipStr.match(/(\b[^\s\(\)]+\b)\s*\([^\(\)]*\)\s*$/);
-            if (arr && ['if', 'switch', 'with', 'catch', 'for', 'while', 'void'].indexOf(arr[1]) !== -1) {
+            arr = skipStr.match(/[^;\n]*(\b[^\s\(\)]+\b)\s*\([^\(\)]*\)\s*$/);
+            if (
+              arr &&
+              ["if", "switch", "with", "catch", "for", "while", "void"].indexOf(
+                arr[1]
+              ) !== -1
+            ) {
               arr = null;
             }
           }
           if (arr) {
             item = {
-              type: 'function',
+              type: "function",
               name: arr[1],
               content: arr[0],
-              pos: startPos + (arr.index || 1),
+              pos: startPos + (arr.index || 0),
               searchStartPost: startPos,
               searchEndPost: lastEndPos,
             };
           } else {
-            arr = skipStr.match(/\b([^\s=]+)\s*=\s*$/);
+            arr = skipStr.match(/[^;\n]*\b([^\s=]+)\s*=\s*$/);
             if (arr) {
               item = {
-                type: 'object',
+                type: "object",
                 name: arr[1],
-                content: arr[0].replace(/\s*=\s*$/, ''),
-                pos: startPos + (arr.index || 1),
+                content: arr[0].replace(/\s*=\s*$/, ""),
+                pos: startPos + (arr.index || 0),
                 searchStartPost: startPos,
                 searchEndPost: lastEndPos,
               };
@@ -149,10 +166,13 @@ module.exports = class AbstractProcessor {
         }
         if (item) {
           // 确保纯粹。不会在他上面多一行代码
-          if (skipStr.trim().indexOf('\n') === -1 && list.length) {
+          if (skipStr.trim().indexOf("\n") === -1 && list.length) {
             // 这种情况下，上一个comment，大概率是该class或function的注释
             const lastItem = list[list.length - 1];
-            if (lastItem.type === 'comment' && lastItem.searchEndPost === item.searchStartPost) {
+            if (
+              lastItem.type === "comment" &&
+              lastItem.searchEndPost === item.searchStartPost
+            ) {
               list.pop();
               item.comment = lastItem;
             }
@@ -161,17 +181,17 @@ module.exports = class AbstractProcessor {
         } else {
           numList.push({
             pos: pos,
-            txt: skipStr
+            txt: skipStr,
           });
         }
-        symbolList.push('{');
+        symbolList.push("{");
         return;
-      } else if (str === '}') {
+      } else if (str === "}") {
         symbolList.pop();
         const item = numList.pop();
         if (item) {
-          list = list.filter(o => {
-            if ((o.type === 'comment' && o.pos > item.pos)) {
+          list = list.filter((o) => {
+            if (o.type === "comment" && o.pos > item.pos) {
               return false;
             }
             return true;
@@ -201,13 +221,12 @@ module.exports = class AbstractProcessor {
               searchEndPost: lastEndPos,
             });
           }
-          return '';
+          return "";
         }
       }
     });
     return list;
   }
-
 
   /**
    * 处理的文件(代码文件)
@@ -222,9 +241,7 @@ module.exports = class AbstractProcessor {
    * @param {number} deep 目录深度（根目录为0）
    * @param {Object} opt 选项
    */
-  async genStructure(dir, deep = 0, opt) {
-
-  }
+  async genStructure(dir, deep = 0, opt) {}
 
   /**
    * 过滤掉不关注的目录，如.git等
@@ -232,7 +249,7 @@ module.exports = class AbstractProcessor {
    */
   pathFilter(absPath) {
     const opt = this.opt || {
-      exclude: /\.git|.vscode|node_modules/
+      exclude: /\.git|.vscode|node_modules/,
     };
     if (opt.exclude && opt.exclude.test(absPath)) {
       if (!(opt.include && opt.include.test(absPath))) {
@@ -246,11 +263,13 @@ module.exports = class AbstractProcessor {
     const list = apiFs.getFileAndDir(this.dir, this.pathFilter.bind(this));
     const newList = [];
     for (const item of list) {
-      if (item.type === 'file') {
+      if (item.type === "file") {
         if (this.acceptFile(item.name)) {
-          newList.push(Object.assign({}, item, {
-            ast: this.parse(apiFs.readFileSync(item.path)),
-          }));
+          newList.push(
+            Object.assign({}, item, {
+              ast: this.parse(apiFs.readFileSync(item.path)),
+            })
+          );
         }
       } else {
         newList.push(item);
@@ -258,7 +277,6 @@ module.exports = class AbstractProcessor {
     }
     return newList;
   }
-
 
   /**
    * 计算注释文本属于介绍该代码文件说明的可能性的权重（概率）
@@ -271,21 +289,17 @@ module.exports = class AbstractProcessor {
    * 获取一个文件的说明注释
    * @param {string} file 文件
    */
-  async getDocument(file) {
-
-  }
+  async getDocument(file) {}
 
   /**
    * 获取代码引用关系
    * @param {string} file 当前文件
    * @param {string} str 代码
    */
-  addRelate(file, str) {
-
-  }
+  addRelate(file, str) {}
 
   getRelateUML() {
-    return '';
+    return "";
   }
 
   getUMLString(list) {
@@ -297,10 +311,15 @@ ${list.join("\n")}
 \`\`\``;
   }
   getDetail() {
-    return '';
+    return "";
   }
   get structure() {
     const list = this.getFiles();
-    return '# 依赖关系\n' + this.getRelateUML(list) + '# 代码说明\n' + this.getDetail(list);
+    return (
+      "# 依赖关系\n" +
+      this.getRelateUML(list) +
+      "# 代码说明\n" +
+      this.getDetail(list)
+    );
   }
 };
