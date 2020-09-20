@@ -6,7 +6,7 @@ const processor = new AbstractProcessor(path.resolve(__dirname, "../"), {
 });
 
 describe("parse", () => {
-  test.only("js", () => {
+  test.only("class", () => {
     const source = path.resolve(__dirname, "./fixture/class.ts");
     const ast = processor.parse(apiFs.readFileSync(source));
     console.log(JSON.stringify(ast, null, 2));
