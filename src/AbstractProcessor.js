@@ -108,7 +108,7 @@ module.exports = class AbstractProcessor {
       if (str === "{") {
         let item = null;
         // 解析出类
-        let arr = skipStr.match(/[^;\n]*\bclass\s(\b[^\s]+\b)/);
+        let arr = skipStr.match(/[^;\n]*\bclass\s+(\b[^\s]+\b)[^\{\}\n;]+/);
         if (arr) {
           item = {
             type: "class",
@@ -122,16 +122,18 @@ module.exports = class AbstractProcessor {
         } else {
           arr =
             // function name(){}
-            skipStr.match(/\b[^;\n]*function\s(\b[^\s\(\)]+\b)\s*\([^\(\)]*\)\s*$/) ||
+            skipStr.match(/[^;\n]*\bfunction\s+(\b[^\s\(\)\.]+\b)\s*\([^\(\)]*\)[^\{\}\n;]*$/) ||
             // const a = function(){}
             skipStr.match(
-              /[^;\n]*(\b[^\s\(\)]+\b)\s*=\s*\bfunction\s*\([^\(\)]*\)\s*$/
-            ) ||
-            //const a = ()=>{}
-            skipStr.match(/[^;\n]*(\b[^\s\(\)]+\b)\s*=[^\(\)]+\([^\(\)]*\)\s*=>\s*$/);
+              /[^;\n]*(\b[^\s\(\)\.]+\b)\s*=\s*\bfunction\s*\([^\(\)]*\)\s*$/
+          ) ||
+        // const a = ()=>{}
+        // const b = params => ({foo: bar})
+        // const b = params => abc => params.concat(abc);
+          skipStr.match(/[^;\n]*(\b[^\s\(\)\.]+\b)\s*=\s*(\([^\(\)]*\)|\b[^\s\(\)]+\b)\s*=>\s*$/);
           if (numList.length && !arr) {
             // 类/对象函数
-            arr = skipStr.match(/[^;\n]*(\b[^\s\(\)]+\b)\s*\([^\(\)]*\)\s*$/);
+            arr = skipStr.match(/[^;\n\.]*(\b[^\s\(\)\.]+\b)\s*\([^\(\)]*\)\s*$/);
             if (
               arr &&
               ["if", "switch", "with", "catch", "for", "while", "void"].indexOf(
