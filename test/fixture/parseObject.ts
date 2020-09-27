@@ -9,7 +9,9 @@ const definedObject = {
 
 };
 
-
+/**
+ * 导出对象
+ */
 module.exports = {
   hello(){
     // noop

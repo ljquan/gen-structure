@@ -28,13 +28,6 @@ module.exports = class AbstractProcessor {
         name: "comment",
         reg: /\/{2,}.*(?=[\r\n])|\/{2,}[^\r\n]*|\/\*[\s\S]*?\*\//,
         fun: (str) => str,
-        // {
-        //   return str
-        //     .replace(/[\/]+[\*]*|[\*]*\//g, "")
-        //     .trim()
-        //     .split(/\n/)[0]
-        //     .replace(/^[*\s]+|\s+$/g, "");
-        // },
         weight: 2,
       },
       {
@@ -71,9 +64,16 @@ module.exports = class AbstractProcessor {
         },
       },
       {
+        // export default'
+        name: "export-default",
+        reg: /\bexport[\s]+default\b[^\{\n]*|\bmodule\.exports\b[^\{\n]*/,
+        weight: 0,
+        fun: (str) => str,
+      },
+      {
         // 括号
         name: "brackets",
-        reg: /[\{\}]/,
+        reg: /[\(]*\{|\}[\)]*/,
         weight: 0,
         fun: (str) => str,
       },
@@ -98,6 +98,7 @@ module.exports = class AbstractProcessor {
     // 符号列表
     const symbolList = [];
     text.replace(this.parseReg, (str, ...args) => {
+      const lastItem = list[list.length - 1] || {};
       const pos = args[args.length - 2];
       // 上次结束的位置为本次开始位置
       const startPos = lastEndPos;
@@ -105,7 +106,7 @@ module.exports = class AbstractProcessor {
       lastEndPos = pos + str.length;
 
       // 通过类似中序转后续的方式解析出括号与定义之间的关系
-      if (str === "{") {
+      if (str[str.length-1] === "{") {
         let item = null;
         // 解析出类
         let arr = skipStr.match(/[^;\n]*\bclass\s+(\b[^\s]+\b)[^\{\}\n;]+/);
@@ -163,6 +164,9 @@ module.exports = class AbstractProcessor {
                 searchStartPost: startPos,
                 searchEndPost: lastEndPos,
               };
+            } else if(!skipStr && lastItem.type === 'export-default'){
+              item = lastItem;
+              list.pop();
             }
           }
         }
@@ -170,9 +174,7 @@ module.exports = class AbstractProcessor {
           // 确保纯粹。不会在他上面多一行代码
           if (skipStr.trim().indexOf("\n") === -1 && list.length) {
             // 这种情况下，上一个comment，大概率是该class或function的注释
-            const lastItem = list[list.length - 1];
-            if (
-              lastItem.type === "comment" &&
+            if (lastItem.type === "comment" &&
               lastItem.searchEndPost === item.searchStartPost
             ) {
               list.pop();
@@ -188,7 +190,7 @@ module.exports = class AbstractProcessor {
         }
         symbolList.push("{");
         return;
-      } else if (str === "}") {
+      } else if (str[0] === "}") {
         symbolList.pop();
         const item = numList.pop();
         if (item) {
@@ -215,13 +217,20 @@ module.exports = class AbstractProcessor {
       for (const item of this.astReg) {
         if (item.reg$.test(str)) {
           if (item.fun) {
-            list.push({
+            const element = {
               pos,
               type: item.name,
               content: item.fun(str),
               searchStartPost: startPos,
               searchEndPost: lastEndPos,
-            });
+            };
+            if (lastItem.type === "comment" &&
+              lastItem.searchEndPost === element.searchStartPost
+            ) {
+              list.pop();
+              element.comment = lastItem;
+            }
+            list.push(element);
           }
           return "";
         }

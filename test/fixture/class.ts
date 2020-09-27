@@ -1,13 +1,3 @@
-let hello ={};
-if ("xxx") {
-    const xxx="xxx";
-    const d = {
-        hello() { }
-    };
-}
-const a = ()=>{}
-const b = params => ({foo: a})
-const c = ( {list} ) =>  abc => list.concat(abc);
 /**
  * 1、注释与定义相邻的情况
  */
@@ -52,3 +42,8 @@ const obj = {
         return true;
     },
 };
+
+/**
+ * 打招呼类
+ */
+export default Greeter;
