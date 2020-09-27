@@ -75,8 +75,9 @@ function getFileAndDir(dir, filter) {
         path: absPath,
         type: 'dir',
         name: file,
+        children: getFileAndDir(absPath, filter)
       });
-      results = results.concat(getFileAndDir(absPath, filter));
+      // results = results.concat(getFileAndDir(absPath, filter));
     }
   }
   return results;

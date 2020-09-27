@@ -9,7 +9,8 @@ describe("parse", () => {
   test("class", () => {
     const source = path.resolve(__dirname, "./fixture/class.ts");
     const ast = processor.parse(apiFs.readFileSync(source));
-    console.log(processor.getDocument(ast))
+    // console.log(processor.getDocument(ast))
+    console.log(processor.genStructure(processor.getFiles()));
     // expect(ast).toEqual([
     //   {
     //     pos: 0,

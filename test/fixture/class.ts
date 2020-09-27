@@ -1,7 +1,8 @@
 /**
  * 1、注释与定义相邻的情况
  */
-class Greeter {
+// 短的
+ class Greeter {
     greeting: string;
     /**
      * 2、class中的方法注释-多行

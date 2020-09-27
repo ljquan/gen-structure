@@ -42,80 +42,87 @@ describe("parse", () => {
     // console.log(JSON.stringify(ast, null, 2));
     expect(ast).toEqual([
       {
+        "pos": 0,
+        "type": "comment",
+        "content": "// 文件注释",
+        "searchStartPost": 0,
+        "searchEndPost": 7
+      },
+      {
         "type": "object",
         "name": "definedObject",
         "content": "const definedObject",
-        "pos": 4,
-        "searchStartPost": 3,
-        "searchEndPost": 27,
+        "pos": 16,
+        "searchStartPost": 15,
+        "searchEndPost": 39,
         "comment": {
-          "pos": 1,
+          "pos": 8,
           "type": "comment",
-          "content": "//",
-          "searchStartPost": 0,
-          "searchEndPost": 3
+          "content": "// 对象注释",
+          "searchStartPost": 7,
+          "searchEndPost": 15
         },
         "children": [
           {
             "type": "function",
             "name": "hello",
             "content": "    hello() ",
-            "pos": 42,
-            "searchStartPost": 41,
-            "searchEndPost": 55,
+            "pos": 54,
+            "searchStartPost": 53,
+            "searchEndPost": 67,
             "comment": {
-              "pos": 32,
+              "pos": 44,
               "type": "comment",
               "content": "// 注释 4.1",
-              "searchStartPost": 27,
-              "searchEndPost": 41
+              "searchStartPost": 39,
+              "searchEndPost": 53
             }
           }
         ]
       },
       {
-        "pos": 125,
+        "pos": 137,
         "type": "export-default",
         "content": "module.exports = ",
-        "searchStartPost": 124,
-        "searchEndPost": 142,
+        "searchStartPost": 136,
+        "searchEndPost": 154,
         "comment": {
-          "pos": 109,
+          "pos": 121,
           "type": "comment",
           "content": "/**\n * 导出对象\n */",
-          "searchStartPost": 106,
-          "searchEndPost": 124
+          "searchStartPost": 118,
+          "searchEndPost": 136
         },
         "children": [
           {
             "type": "function",
             "name": "hello",
             "content": "  hello()",
-            "pos": 144,
-            "searchStartPost": 143,
-            "searchEndPost": 154
+            "pos": 156,
+            "searchStartPost": 155,
+            "searchEndPost": 166
           },
           {
             "type": "function",
             "name": "world",
             "content": "  world()",
-            "pos": 172,
-            "searchStartPost": 170,
-            "searchEndPost": 182,
+            "pos": 184,
+            "searchStartPost": 182,
+            "searchEndPost": 194,
             "children": [
               {
                 "type": "function",
                 "name": "innerFun",
                 "content": "    const innerFun = function()",
-                "pos": 195,
-                "searchStartPost": 194,
-                "searchEndPost": 227,
+                "pos": 207,
+                "searchStartPost": 206,
+                "searchEndPost": 239,
                 "comment": {
-                  "pos": 187,
+                  "pos": 199,
                   "type": "comment",
                   "content": "// 内部函数",
-                  "searchStartPost": 182,
-                  "searchEndPost": 194
+                  "searchStartPost": 194,
+                  "searchEndPost": 206
                 }
               }
             ]
@@ -126,23 +133,23 @@ describe("parse", () => {
         "type": "object",
         "name": "exportObj",
         "content": "export const exportObj",
-        "pos": 253,
-        "searchStartPost": 248,
-        "searchEndPost": 279,
+        "pos": 265,
+        "searchStartPost": 260,
+        "searchEndPost": 291,
         "children": [
           {
             "type": "function",
             "name": "expFun",
             "content": "  expFun()",
-            "pos": 304,
-            "searchStartPost": 303,
-            "searchEndPost": 315,
+            "pos": 316,
+            "searchStartPost": 315,
+            "searchEndPost": 327,
             "comment": {
-              "pos": 282,
+              "pos": 294,
               "type": "comment",
               "content": "/**\n   * expFun\n   */",
-              "searchStartPost": 279,
-              "searchEndPost": 303
+              "searchStartPost": 291,
+              "searchEndPost": 315
             }
           }
         ]

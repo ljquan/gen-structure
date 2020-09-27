@@ -19,6 +19,9 @@ module.exports = class Processor extends AbstractProcessor{
    * @param {string} text 文本
    */
   getWeight(text) {
+    if (/@param/.test(text)){
+      return 0;
+    }
     if (/模块|组件|@desc/.test(text)) {
       return 10;
     }
@@ -31,7 +34,7 @@ module.exports = class Processor extends AbstractProcessor{
     }
     if (/[\u4e00-\u9fa5]/.test(text) && !/上午|下午/.test(text)) {
       // 自动生成注释可能包含中文时间
-      return 7;
+      return text.length / 10;
     }
     return text.length > 50 ? 0 : text.length / 50;
   }
@@ -52,8 +55,11 @@ module.exports = class Processor extends AbstractProcessor{
    * @param {string} file 文件
    */
   getDocument(ast) {
-    const list = [];
+    let list = [];
     for (let item of ast) {
+      if(item.type === "comment"){
+        list.push(item);
+      }
       if(!item.comment){
         continue;
       }
@@ -63,7 +69,10 @@ module.exports = class Processor extends AbstractProcessor{
         list.push(item.comment);
       }
     }
-    const item = list.map(item => this.getSingleComment(item.content)).sort((a, b) => b.weight - a.weight)[0];
+    list = list.map(item => this.getSingleComment(item.content)).sort((a, b) => b.weight - a.weight);
+    // console.log(list);
+
+    const item = list[0];
     return item ? item.clean : '';
   }
 
@@ -174,103 +183,54 @@ ${list.join("\n")}
    * @param {number} deep 目录深度（根目录为0）
    * @param {Object} opt 选项
    */
-  async genStructure(dir, deep = 0, opt) {
-    console.log("processing", dir);
+  genStructure(fileList, deep = 0) {
     let strList = [];
-    const fileList = apiFs.getFile(dir);
-    const dirList = apiFs.getDir(dir);
-    const textList = [];
-    for (let file of fileList) {
-      // if (/\.(ico|svg|png|jpg|png|exe|jpeg|md|json|d\.ts|html|DS_Store|editorconfig|gitignore|mp3|zip|sql|min\..*)$/.test(file)) { // 跳过非代码文件
-      //   // console.log('file', file);
-      //   continue;
-      // }
-      if (
-        !/\.(js|ts|css|scss|less|sass|sh)$/.test(file) ||
-        /\.(min\..*)$/.test(file)
-      ) {
-        // 跳过非代码文件
-        // console.log('file', file);
-        continue;
-      }
-      const filePath = path.resolve(dir, file);
-      // console.log('filePath', filePath);
-      const text = await this.getDocument(filePath);
-      // console.log('text', text);
-      if (text) {
-        textList.push([text, file, filePath]);
-      }
-    }
-    let last = textList.length - 1;
-    textList.forEach(([text, file, filePath], i) => {
-      // 处理文件 - 说明
-      if (last > 0) {
-        const tree =
-          (i < last ? "├" : "└") +
+    const lastIndex = fileList.length - 1;
+    fileList.forEach((item, i) => {
+      let tree = '';
+      if(deep > 0){
+        tree = (i < lastIndex ? "├" : "└") +
           Array(deep + 1)
             .fill("─")
             .join("");
-        const pathStr = `[${tree}${file}](${filePath})`;
-        strList.push(`${pathStr}\t${text.replace(/@\w+/, "")}<br>`);
-      } else {
-        strList.push(
-          `[${filePath}](${filePath})\t${text.replace(/@\w+/, "")}<br>`
-        );
       }
+      if (item.type === 'file') {
+        // 处理文件 - 说明
+        const pathStr = `[${tree}${item.name}](${item.path})`;
+        let document = item.ast ? this.getDocument(item.ast).replace(/@\w+/, ""): '';
+        strList.push(`${pathStr}\t${document}<br>`);
+      } else if (item.type === 'dir') {
+          // console.log('subDir', subDir);
+          // 生成子目录
+          let struct = this.genStructure(item.children, deep + 1);
+          if (struct) {
+            let index = null; // 目录中的index文件描述，如果有，可用于描述当前目录说明
+            struct = struct.filter((file) => {
+              if (/index\.[^\///\.]+$/.test(file.name) && file.type === 'file') {
+                index = file;
+                return false;
+              }
+              return true;
+            });
+            const head =
+              Array(deep + 1)
+                .fill("#")
+                .join("") + " ";
+            const pathStr = `[${item.name}](${item.path})`;
+            if (index) {
+              if (struct.length > 1) {
+                strList.push(`${head}${pathStr} ${index.split(")\t")[1] || ""}`); // 文件描述用 )\t 分割
+              } else {
+                strList.push(`${pathStr} ${index.split(")\t")[1]}`); // 文件描述用 )\t 分割
+              }
+            } else if (struct.length > 1) {
+              // 只有一个子目录或者只有一个文件，不打印目录
+              strList.push(head + pathStr);
+            }
+            strList = strList.concat(struct);
+          }
+      } 
     });
-
-    for (let subDir of dirList) {
-      if (opt && opt.exclude && opt.exclude.test(subDir)) {
-        if (!(opt.include && opt.include.test(subDir))) {
-          continue;
-        }
-      }
-      // console.log('subDir', subDir);
-      // 生成子目录
-      let struct = await this.genStructure(
-        path.resolve(dir, subDir),
-        deep + 1,
-        opt
-      );
-      if (struct) {
-        let index = ""; // 目录中的index文件描述，如果有，可用于描述当前目录说明
-        let dirNum = 0;
-        struct = struct.filter((file) => {
-          if (/index\.[^\///\.]+$/.test(file) && !index) {
-            index = file;
-            return false;
-          } else if (!file.includes(")\t")) {
-            dirNum++;
-          }
-          return true;
-        });
-        const head =
-          Array(deep + 1)
-            .fill("#")
-            .join("") + " ";
-        const dirDoc = path.join(dir, subDir);
-        const pathStr = `[${dirDoc}](${dirDoc})`;
-        if (index) {
-          if (struct.length > 1) {
-            strList.push(`${head}${pathStr} ${index.split(")\t")[1] || ""}`); // 文件描述用 )\t 分割
-          } else {
-            strList.push(
-              `${struct.length > 1 ? head : ""}${pathStr} ${
-                index.split(")\t")[1]
-              }`
-            ); // 文件描述用 )\t 分割
-          }
-        } else if (struct.length > 1 && dirNum !== 1) {
-          // 只有一个子目录或者只有一个文件，不打印目录
-          strList.push(head + pathStr);
-        }
-        strList = strList.concat(struct);
-      }
-    }
-    last = strList.length - 1;
-    if (last > -1) {
-      strList[last] = strList[last].replace("├", "└");
-    }
     return strList;
   }
 

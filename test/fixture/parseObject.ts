@@ -1,5 +1,5 @@
-
-//
+// 文件注释
+// 对象注释
 const definedObject = {
     // 注释 4.1
     hello() {

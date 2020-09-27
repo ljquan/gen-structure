@@ -226,6 +226,7 @@ module.exports = class AbstractProcessor {
             };
             if (lastItem.type === "comment" &&
               lastItem.searchEndPost === element.searchStartPost
+              && element.type !== "comment"
             ) {
               list.pop();
               element.comment = lastItem;
@@ -272,18 +273,25 @@ module.exports = class AbstractProcessor {
 
   getFiles() {
     const list = apiFs.getFileAndDir(this.dir, this.pathFilter.bind(this));
-    const newList = [];
-    for (const item of list) {
+    let newList = [];
+    const parseAst = (item)=>{
+      let newItem = Object.assign({}, item);
       if (item.type === "file") {
-        if (this.acceptFile(item.name)) {
-          newList.push(
-            Object.assign({}, item, {
-              ast: this.parse(apiFs.readFileSync(item.path)),
-            })
-          );
+        if (this.acceptFile(newItem.name)) {
+          newItem.ast = this.parse(apiFs.readFileSync(item.path));
+          return newItem;
         }
-      } else {
-        newList.push(item);
+      } else if (item.children && item.children.length){
+        newItem.children = newItem.children.map(o => parseAst(o)).filter(o=>!!o);
+        if(newItem.children.length){
+          return newItem;
+        }
+      }
+    }
+    for (const item of list) {
+      const newItem = parseAst(item);
+      if(newItem){
+        newList.push(newItem);
       }
     }
     return newList;
