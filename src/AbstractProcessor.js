@@ -247,13 +247,62 @@ module.exports = class AbstractProcessor {
   acceptFile(name) {
     return /\.ts$|\.js$/.test(name);
   }
+
   /**
    * 生成项目结构
    * @param {string} dir 目录地址
    * @param {number} deep 目录深度（根目录为0）
-   * @param {Object} opt 选项
    */
-  async genStructure(dir, deep = 0, opt) {}
+  genStructure(fileList, deep = 0) {
+    let strList = [];
+    const lastIndex = fileList.length - 1;
+    fileList.forEach((item, i) => {
+      let tree = '';
+      if (deep > 0) {
+        tree = (i < lastIndex ? "├" : "└") +
+          Array(deep + 1)
+            .fill("─")
+            .join("");
+      }
+      if (item.type === 'file') {
+        // 处理文件 - 说明
+        const pathStr = `[${tree}${item.name}](${item.path})`;
+        let document = item.ast ? this.getDocument(item.ast).replace(/@\w+/, "") : '';
+        strList.push(`${pathStr}\t${document}<br>`);
+      } else if (item.type === 'dir') {
+        // console.log('subDir', subDir);
+        // 生成子目录
+        let struct = this.genStructure(item.children, deep + 1);
+        if (struct) {
+          let index = null; // 目录中的index文件描述，如果有，可用于描述当前目录说明
+          struct = struct.filter((file) => {
+            if (/index\.[^\///\.]+$/.test(file.name) && file.type === 'file') {
+              index = file;
+              return false;
+            }
+            return true;
+          });
+          const head =
+            Array(deep + 1)
+              .fill("#")
+              .join("") + " ";
+          const pathStr = `[${item.name}](${item.path})`;
+          if (index) {
+            if (struct.length > 1) {
+              strList.push(`${head}${pathStr} ${index.split(")\t")[1] || ""}`); // 文件描述用 )\t 分割
+            } else {
+              strList.push(`${pathStr} ${index.split(")\t")[1]}`); // 文件描述用 )\t 分割
+            }
+          } else if (struct.length > 1) {
+            // 只有一个子目录或者只有一个文件，不打印目录
+            strList.push(head + pathStr);
+          }
+          strList = strList.concat(struct);
+        }
+      }
+    });
+    return strList;
+  }
 
   /**
    * 过滤掉不关注的目录，如.git等
