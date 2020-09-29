@@ -89,7 +89,10 @@ module.exports = class AbstractProcessor {
     // console.log(regStr);
     this.parseReg = new RegExp(regStr, "g");
   }
-
+  /**
+   * 解析出简单的ast
+   * @param {string} text 源码内容
+   */
   parse(text) {
     let list = [];
     let lastEndPos = 0;
@@ -254,6 +257,9 @@ module.exports = class AbstractProcessor {
    * @param {number} deep 目录深度（根目录为0）
    */
   genStructure(fileList, deep = 0) {
+    if(!(fileList && fileList.length)){
+      throw new Error('未找到代码文件');
+    }
     let strList = [];
     const lastIndex = fileList.length - 1;
     fileList.forEach((item, i) => {
@@ -266,7 +272,7 @@ module.exports = class AbstractProcessor {
       }
       if (item.type === 'file') {
         // 处理文件 - 说明
-        const pathStr = `[${tree}${item.name}](${item.path})`;
+        const pathStr = `[${tree}${item.name}](${path.relative(process.cwd(), item.path)})`;
         let document = item.ast ? this.getDocument(item.ast).replace(/@\w+/, "") : '';
         strList.push(`${pathStr}\t${document}<br>`);
       } else if (item.type === 'dir') {
@@ -286,7 +292,7 @@ module.exports = class AbstractProcessor {
             Array(deep + 1)
               .fill("#")
               .join("") + " ";
-          const pathStr = `[${item.name}](${item.path})`;
+          const pathStr = `[${item.name}](${path.relative(process.cwd(), item.path)})`;
           if (index) {
             if (struct.length > 1) {
               strList.push(`${head}${pathStr} ${index.split(")\t")[1] || ""}`); // 文件描述用 )\t 分割
@@ -319,7 +325,9 @@ module.exports = class AbstractProcessor {
     }
     return true;
   }
-
+  /**
+   * 获取文件列表
+   */
   getFiles() {
     const list = apiFs.getFileAndDir(this.dir, this.pathFilter.bind(this));
     let newList = [];

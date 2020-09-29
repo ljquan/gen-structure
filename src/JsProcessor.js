@@ -55,13 +55,14 @@ module.exports = class Processor extends AbstractProcessor{
   }
   /**
    * 获取一个文件的说明注释
-   * @param {string} file 文件
+   * @param {any[]} ast 代码语法树
    */
   getDocument(ast) {
     let list = [];
     for (let item of ast) {
       if(item.type === "comment"){
         list.push(item);
+        continue;
       }
       if(!item.comment){
         continue;
@@ -79,6 +80,48 @@ module.exports = class Processor extends AbstractProcessor{
     return item ? item.clean : '';
   }
 
+  /**
+   * 处理依赖关系
+   * @param {any[]} ast 代码语法树
+   */
+  processImport(fileList){
+    if(!(fileList && fileList.length)){
+      throw new Error('未找到代码文件');
+    }
+    const cwd = process.cwd();
+    const umlMap = [];
+    const getRequire = flist => {
+      const list = [];
+      flist.forEach(item=>{
+        if(item.type === 'file' && item.ast && item.ast.length){
+          const file = path.relative(cwd, item.path).replace(/\.\w+$/, '');
+          item.ast.filter(o=>["import", "require", "export-import"].includes(o.type)).forEach(ast=>{
+            let rel = /[\.\/\\]/.test(ast.content) ? path.relative(cwd, path.resolve(path.parse(item.path).dir, ast.content)) : ast.content;
+            rel = rel.replace(/\.\w+$/, '');
+            let hasAdd = false;
+            umlMap.forEach(arr=>{
+              if(arr[0] ===rel){
+                arr.unshift(file);
+                hasAdd = true;
+              }else if(arr[arr.length-1] === file){
+                arr.push(rel);
+                hasAdd = true;
+              }
+            });
+            if(!hasAdd){
+              umlMap.push([file, rel]);
+            }
+          });
+        }else if(item.type === 'dir' && item.children && item.children.length){
+          getRequire(item.children);
+        }
+      });
+    };
+
+
+    getRequire(fileList);
+    return umlMap.sort((a,b)=>b.length-a.length);;
+  }
   /**
    * 获取代码引用关系
    * @param {string} file 当前文件
