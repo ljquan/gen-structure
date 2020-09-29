@@ -256,7 +256,7 @@ module.exports = class AbstractProcessor {
       let tree = '';
       if (deep > 0) {
         tree = (i < lastIndex ? "├" : "└") +
-          Array(deep + 1)
+          Array(deep - 1)
             .fill("─")
             .join("");
       }
@@ -282,7 +282,7 @@ module.exports = class AbstractProcessor {
             Array(deep + 1)
               .fill("#")
               .join("") + " ";
-          const pathStr = `[${item.name}](${path.relative(process.cwd(), item.path)})`;
+          const pathStr = `[${tree}${item.name}](${path.relative(process.cwd(), item.path)})`;
           if (index) {
             if (struct.length > 1) {
               strList.push(`${head}${pathStr} ${index.split(")\t")[1] || ""}`); // 文件描述用 )\t 分割
@@ -291,7 +291,7 @@ module.exports = class AbstractProcessor {
             }
           } else if (struct.length > 1) {
             // 只有一个子目录或者只有一个文件，不打印目录
-            strList.push(head + pathStr);
+            strList.push(head +  pathStr);
           }
           strList = strList.concat(struct);
         }
