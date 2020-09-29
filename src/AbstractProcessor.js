@@ -1,17 +1,7 @@
 // 入口文件
 const apiFs = require("./api/fs.js");
-const fs = require("fs");
 const path = require("path");
 
-const regAnnotation = /"([^\\\"]*(\\.)?)*"|'([^\\\']*(\\.)?)*'|`([^\\\`]*(\\.)?)*`|\/{2,}.*(?=[\r\n])|\/{2,}[^\r\n]*|\/\*[\s\S]*?\*\//g;
-
-const tagRE = /(?:<!--[\S\s]*?-->|<%((?!%>)[\s\S])*%>|<(?:<%((?!%>)[\s\S])*%>|"[^"]*<%((?!%>)[\s\S])*%>[^"]*"|'[^']*<%((?!%>)[\s\S])*%>[^']*'|"[^"]*"['"]*|'[^']*'['"]*|[^'">])+>)/g;
-
-const regComment = /\/{2,}|\/[\*]+|[\*]+\/|^\s*[\*]+|[\*]+\s*|<!-{2,}|-{2,}>/g;
-
-const requireReg = /require\(['"`]([^'"`]+)['"`]\)/;
-const importReg = /import[^'"`]+['"`]([^'"`]+)['"`]/;
-const jsExtReg = /\.ts|\.js$/;
 
 module.exports = class AbstractProcessor {
   constructor(dir, opt) {
@@ -316,10 +306,12 @@ module.exports = class AbstractProcessor {
    */
   pathFilter(absPath) {
     const opt = this.opt || {
-      exclude: /\.git|.vscode|node_modules/,
+      exclude: /\.git|.vscode|node_modules|test/,
     };
-    if (opt.exclude && opt.exclude.test(absPath)) {
-      if (!(opt.include && opt.include.test(absPath))) {
+    const relPath = path.relative(process.cwd(), absPath);
+    // console.log(relPath, opt)
+    if (opt.exclude && opt.exclude.test(relPath)) {
+      if (!(opt.include && opt.include.test(relPath))) {
         return false;
       }
     }
@@ -330,6 +322,7 @@ module.exports = class AbstractProcessor {
    */
   getFiles() {
     const list = apiFs.getFileAndDir(this.dir, this.pathFilter.bind(this));
+    // console.log(this.dir, list);
     let newList = [];
     const parseAst = (item)=>{
       let newItem = Object.assign({}, item);
@@ -367,28 +360,7 @@ module.exports = class AbstractProcessor {
    */
   async getDocument(file) {}
 
-  /**
-   * 获取代码引用关系
-   * @param {string} file 当前文件
-   * @param {string} str 代码
-   */
-  addRelate(file, str) {}
 
-  getRelateUML() {
-    return "";
-  }
-
-  getUMLString(list) {
-    return `
-\`\`\`plantuml
-@startuml
-${list.join("\n")}
-@enduml
-\`\`\``;
-  }
-  getDetail() {
-    return "";
-  }
   get structure() {
     const list = this.getFiles();
     return (

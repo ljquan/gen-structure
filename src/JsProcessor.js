@@ -1,16 +1,10 @@
 // 入口文件
-const AbstractProcessor = require('./AbstractProcessor');
-const apiFs = require("./api/fs.js");
-const fs = require("fs");
+const AbstractProcessor = require("./AbstractProcessor");
 const path = require("path");
 
 const regComment = /\/{2,}|\/[\*]+|[\*]+\/|^\s*[\*]+|[\*]+\s*|<!-{2,}|-{2,}>/g;
 
-const requireReg = /require\(['"`]([^'"`]+)['"`]\)/;
-const importReg = /import[^'"`]+['"`]([^'"`]+)['"`]/;
-const jsExtReg = /\.ts|\.js$/;
-
-module.exports = class Processor extends AbstractProcessor{
+module.exports = class Processor extends AbstractProcessor {
   constructor(dir, opt) {
     super(dir, opt);
   }
@@ -19,7 +13,7 @@ module.exports = class Processor extends AbstractProcessor{
    * @param {string} text 文本
    */
   getWeight(text) {
-    if (/@param/.test(text)){
+    if (/@param/.test(text)) {
       return 0;
     }
     if (/模块|组件|@desc/.test(text)) {
@@ -38,20 +32,22 @@ module.exports = class Processor extends AbstractProcessor{
     }
     return text.length > 50 ? 0 : text.length / 50;
   }
-/**
- * 获取单行注释说明
- * @param {string} text 一段注释内容
- */
-  getSingleComment(text){
+  /**
+   * 获取单行注释说明
+   * @param {string} text 一段注释内容
+   */
+  getSingleComment(text) {
     const lines = text.split(/\n+/);
-    return lines.map(line => {
-      const str = line.replace(regComment, "").trim();
-      return {
-        origin: line,
-        clean: str,
-        weight: this.getWeight(str),
-      };
-    }).sort((a, b)=>b.weight - a.weight)[0];
+    return lines
+      .map((line) => {
+        const str = line.replace(regComment, "").trim();
+        return {
+          origin: line,
+          clean: str,
+          weight: this.getWeight(str),
+        };
+      })
+      .sort((a, b) => b.weight - a.weight)[0];
   }
   /**
    * 获取一个文件的说明注释
@@ -60,136 +56,90 @@ module.exports = class Processor extends AbstractProcessor{
   getDocument(ast) {
     let list = [];
     for (let item of ast) {
-      if(item.type === "comment"){
+      if (item.type === "comment") {
         list.push(item);
         continue;
       }
-      if(!item.comment){
+      if (!item.comment) {
         continue;
       }
-      if(list.length === 0){
+      if (list.length === 0) {
         list.push(item.comment);
-      } else if (item.type === 'export-default') {
+      } else if (item.type === "export-default") {
         list.push(item.comment);
       }
     }
-    list = list.map(item => this.getSingleComment(item.content)).sort((a, b) => b.weight - a.weight);
+    list = list
+      .map((item) => this.getSingleComment(item.content))
+      .sort((a, b) => b.weight - a.weight);
     // console.log(list);
 
     const item = list[0];
-    return item ? item.clean : '';
+    return item ? item.clean : "";
   }
 
   /**
    * 处理依赖关系
    * @param {any[]} ast 代码语法树
    */
-  processImport(fileList){
-    if(!(fileList && fileList.length)){
-      throw new Error('未找到代码文件');
+  processImport(fileList) {
+    if (!(fileList && fileList.length)) {
+      throw new Error("未找到代码文件");
     }
     const cwd = process.cwd();
     const umlMap = [];
-    const getRequire = flist => {
+    const getRequire = (flist) => {
       const list = [];
-      flist.forEach(item=>{
-        if(item.type === 'file' && item.ast && item.ast.length){
-          const file = path.relative(cwd, item.path).replace(/\.\w+$/, '');
-          item.ast.filter(o=>["import", "require", "export-import"].includes(o.type)).forEach(ast=>{
-            let rel = /[\.\/\\]/.test(ast.content) ? path.relative(cwd, path.resolve(path.parse(item.path).dir, ast.content)) : ast.content;
-            rel = rel.replace(/\.\w+$/, '');
-            let hasAdd = false;
-            umlMap.forEach(arr=>{
-              if(arr[0] ===rel){
-                arr.unshift(file);
-                hasAdd = true;
-              }else if(arr[arr.length-1] === file){
-                arr.push(rel);
-                hasAdd = true;
+      flist.forEach((item) => {
+        if (item.type === "file" && item.ast && item.ast.length) {
+          const file = path.relative(cwd, item.path).replace(/\.\w+$/, "");
+          item.ast
+            .filter((o) =>
+              ["import", "require", "export-import"].includes(o.type)
+            )
+            .forEach((ast) => {
+              let rel = /[\.\/\\]/.test(ast.content)
+                ? path.relative(
+                    cwd,
+                    path.resolve(path.parse(item.path).dir, ast.content)
+                  )
+                : ast.content;
+              rel = rel.replace(/\.\w+$/, "");
+              let hasAdd = false;
+              umlMap.forEach((arr) => {
+                if (arr[0] === rel) {
+                  arr.unshift(file);
+                  hasAdd = true;
+                } else if (arr[arr.length - 1] === file) {
+                  arr.push(rel);
+                  hasAdd = true;
+                }
+              });
+              if (!hasAdd) {
+                umlMap.push([file, rel]);
               }
             });
-            if(!hasAdd){
-              umlMap.push([file, rel]);
-            }
-          });
-        }else if(item.type === 'dir' && item.children && item.children.length){
+        } else if (
+          item.type === "dir" &&
+          item.children &&
+          item.children.length
+        ) {
           getRequire(item.children);
         }
       });
     };
 
-
     getRequire(fileList);
-    return umlMap.sort((a,b)=>b.length-a.length);;
-  }
-  /**
-   * 获取代码引用关系
-   * @param {string} file 当前文件
-   * @param {string} str 代码
-   */
-  addRelate(file, str) {
-    if (!jsExtReg.test(file)) {
-      return;
+    const umlList = umlMap.sort((a, b) => b.length - a.length);
+    function getUMLString(list) {
+      return `
+    \`\`\`plantuml
+    @startuml
+    ${list.join("\n")}
+    @enduml
+    \`\`\``;
     }
-    let match = str.match(requireReg);
-    if (!match) {
-      match = str.match(importReg);
-    }
-    if (!match) {
-      return;
-    }
-
-    if (!(file in this.relativeMap)) {
-      this.relativeMap[file] = {};
-    }
-    let name = /[\.\/\\]/.test(match[1][0])
-      ? path.resolve(path.parse(file).dir, match[1])
-      : match[1];
-    this.relativeMap[file][name] = 1;
-  }
-
-  getRelateUML() {
-    const list = [];
-    const cwd = process.cwd();
-    for (const key of Object.keys(this.relativeMap)) {
-      let name = key.includes(cwd)
-        ? path.relative(cwd, key).replace(jsExtReg, "")
-        : key;
-      for (const rel of Object.keys(this.relativeMap[key])) {
-        let relName = key.includes(cwd)
-          ? path.relative(cwd, rel).replace(jsExtReg, "")
-          : rel;
-        list.push(`[${name}] -up-> [${relName}]`);
-
-        let hasAdd = false;
-        this.umlMap.forEach((arr) => {
-          if (arr[0] === relName) {
-            arr.unshift(name);
-            hasAdd = true;
-          } else if (arr[arr.length - 1] === name) {
-            arr.push(relName);
-            hasAdd = true;
-          }
-        });
-        if (!hasAdd) {
-          this.umlMap.push([name, relName]);
-        }
-      }
-    }
-    const umlArr = this.umlMap.sort((a, b) => b.length - a.length);
-    console.log(this.clustering(umlArr));
-    return this.clustering(umlArr)
-      .map((item) => this.getUMLString(item))
-      .join("\n\n");
-  }
-
-  getUMLString(list) {
-    return `
-\`\`\`plantuml
-@startuml
-${list.join("\n")}
-@enduml
-\`\`\``;
+    return this.clustering(umlList).map(item=>getUMLString(item)).join('\n\n');
   }
 
   clustering(arr, res = []) {
@@ -224,18 +174,17 @@ ${list.join("\n")}
     return this.clustering(left, res);
   }
 
+
   async run() {
-    const struct = this.genStructure(processor.getFiles(), 0);
-    const uml = this.getRelateUML();
+    const files = this.getFiles();
+    const struct = this.genStructure(files);
+
     return `# 依赖关系
-    ${uml}
+    ${this.processImport(files)}
 
     # 代码说明
     ${struct
       .join("\n")
-      .replace(
-        new RegExp(this.dir.replace(path.sep, "\\" + path.sep), "g"),
-        "."
-      )}`;
+      }`.replace(/\n\s+/g, '\n');
   }
 };

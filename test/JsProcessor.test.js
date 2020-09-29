@@ -2,17 +2,18 @@ const path = require("path");
 const apiFs = require("../src/api/fs.js");
 const JsProcessor = require("../src/JsProcessor.js");
 const processor = new JsProcessor(path.resolve(__dirname, "../"), {
-  exclude: /\.git|.vscode|node_modules/,
+  exclude: /\.git|.vscode|node_modules|test/,
 });
 
 describe("parse", () => {
   test("class", () => {
-    const source = path.resolve(__dirname, "../src/run.js");
+    const source = path.resolve(__dirname, "./fixture/class.ts");
     const ast = processor.parse(apiFs.readFileSync(source));
     // console.log(processor.getDocument(ast))
     // console.log(processor.genStructure(processor.getFiles()));
     // console.log(processor.processImport(ast));
-    console.log(processor.processImport(processor.getFiles()));
+    // console.log(processor.processImport(processor.getFiles()));
+    console.log(processor.run());
     // expect(ast).toEqual([
     //   {
     //     pos: 0,

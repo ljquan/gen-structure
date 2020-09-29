@@ -4,8 +4,7 @@ const program = require('commander');
 const path = require('path');
 const packageJson = require('./package.json');
 const apiFs = require('./src/api/fs.js');
-const run = require('./src/run');
-const Processor = require('./src/processor');
+const Processor = require('./src/JsProcessor.js');
 
 
 program
@@ -24,7 +23,7 @@ program.parse(process.argv);
 
 
 
-let exclude = 'node_modules|\\..*|dist';
+let exclude = 'node_modules|^\\..*|dist';
 const option = {};
 let dir = path.resolve(program.path || process.cwd());
 
