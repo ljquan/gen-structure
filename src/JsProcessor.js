@@ -86,13 +86,14 @@ module.exports = class Processor extends AbstractProcessor {
     if (!(fileList && fileList.length)) {
       throw new Error("未找到代码文件");
     }
+    const importDict = {};
     const cwd = process.cwd();
     const umlMap = [];
     const getRequire = (flist) => {
-      const list = [];
       flist.forEach((item) => {
         if (item.type === "file" && item.ast && item.ast.length) {
           const file = path.relative(cwd, item.path).replace(/\.\w+$/, "");
+          importDict[file] = [];
           item.ast
             .filter((o) =>
               ["import", "require", "export-import"].includes(o.type)
@@ -105,6 +106,7 @@ module.exports = class Processor extends AbstractProcessor {
                   )
                 : ast.content;
               rel = rel.replace(/\.\w+$/, "");
+              importDict[file].push(rel);
               let hasAdd = false;
               umlMap.forEach((arr) => {
                 if (arr[0] === rel) {
@@ -130,7 +132,9 @@ module.exports = class Processor extends AbstractProcessor {
     };
 
     getRequire(fileList);
+    console.log('importDict', JSON.stringify(importDict, null, 2));
     const umlList = umlMap.sort((a, b) => b.length - a.length);
+    console.log(umlList);
     function getUMLString(list) {
       return `
     \`\`\`plantuml

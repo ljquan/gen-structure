@@ -348,26 +348,9 @@ module.exports = class AbstractProcessor {
   }
 
   /**
-   * 计算注释文本属于介绍该代码文件说明的可能性的权重（概率）
-   * @param {string} text 文本
-   */
-  getWeight(text) {
-    return text.length;
-  }
-  /**
    * 获取一个文件的说明注释
    * @param {string} file 文件
    */
-  async getDocument(file) {}
+  getDocument(file) {}
 
-
-  get structure() {
-    const list = this.getFiles();
-    return (
-      "# 依赖关系\n" +
-      this.getRelateUML(list) +
-      "# 代码说明\n" +
-      this.getDetail(list)
-    );
-  }
 };
