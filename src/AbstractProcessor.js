@@ -18,11 +18,11 @@ module.exports = class AbstractProcessor {
         name: "comment",
         reg: /\/{2,}.*(?=[\r\n])|\/{2,}[^\r\n]*|\/\*[\s\S]*?\*\//,
         fun: (str) => str,
-        weight: 2,
+        weight: 5, // 注释的优先级要比正则高。不然容易死循环：/* webpackChunkName: "trans_login" */   '../views/system/trans_login.vue'
       },
       {
         name: "regexp",
-        reg: /(?!\/\/)\/[^\n]+\//,
+        reg: /(?!\/\/)\/([^\n\\\/]|\\\/)+(?<!\\)\//,
         weight: 4,
       },
       {
@@ -90,7 +90,9 @@ module.exports = class AbstractProcessor {
     const numList = [];
     // 符号列表
     const symbolList = [];
+    console.log('parse', this.parseReg);
     text.replace(this.parseReg, (str, ...args) => {
+      console.log(str);
       const lastItem = list[list.length - 1] || {};
       const pos = args[args.length - 2];
       // 上次结束的位置为本次开始位置
@@ -326,6 +328,7 @@ module.exports = class AbstractProcessor {
     let newList = [];
     const parseAst = (item)=>{
       let newItem = Object.assign({}, item);
+      console.log(item.path);
       if (item.type === "file") {
         if (this.acceptFile(newItem.name)) {
           newItem.ast = this.parse(apiFs.readFileSync(item.path));

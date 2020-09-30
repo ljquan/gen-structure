@@ -26,6 +26,13 @@
     },
     {
       "type": "node",
+      "request": "launch",
+      "name": "Launch test",
+      "program": "${workspaceFolder}/test.js",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
       "request": "attach",
       "name": "Attach by Process ID",
       "processId": "${command:PickProcess}"

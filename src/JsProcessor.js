@@ -139,9 +139,9 @@ module.exports = class Processor extends AbstractProcessor {
     };
 
     getRequire(fileList);
-    console.log('importDict', JSON.stringify(importDict, null, 2));
+    // console.log('importDict', JSON.stringify(importDict, null, 2));
     const umlList = umlMap.sort((a, b) => b.length - a.length);
-    console.log(umlList);
+    // console.log('umlList', umlList[0]);
     function getUMLString(list) {
       return `
     \`\`\`plantuml
@@ -166,34 +166,47 @@ module.exports = class Processor extends AbstractProcessor {
         });
       }
     }
-    const clust = arr.map(item=>{
-      const subList = [];
+    // 聚合
+    const clust = [];
+    for(const item of arr){
+      let subList = [];
       let level = 0;
       for(let i = item.length - 2; i >= 0; i--){
         const o = item[i];
-        if(dict[o] && dict[o].length){
-          if(level){
-            level++;
-          }else{
-            level = 2;
-          }
-          addRel(subList, o);
+        // console.log(o, dict[o]);
+
+        if(level){
+          level++;
         }else{
-          break;
+          level = 2;
         }
+        // console.log('subList.length', subList.length, 'i', i, 'clust', clust.length);
+        if(subList.length > 10 && i > 2){
+          clust.push({
+            level,
+            list: subList,
+            item: item.slice(i),
+          });
+          subList = [];
+          level = 0;
+        }
+        addRel(subList, o);
       }
-      return {
-        level,
-        list: subList,
-        item,
-      };
-    }).filter(item=>item.level > 0 && item.list.length > 0);
-    console.log('clust', JSON.stringify(clust, null, 2))
+      if(level > 0 && subList.length > 0){
+        clust.push({
+          level,
+          list: subList,
+          item,
+        });
+      }
+    }
+
+    // console.log('clust', JSON.stringify(clust, null, 2))
     let list = [];
     let subList = [];
     let relDict = {};
     for(const item of clust){
-      if(subList.length === 0 || item.item.some(o=>!!relDict[o])){
+      if(subList.length === 0){
         item.list.forEach((sourceRel)=>{
           subList.push(`[${sourceRel[0]}] -up-> [${sourceRel[1]}]`);
         });
@@ -211,7 +224,7 @@ module.exports = class Processor extends AbstractProcessor {
     if(subList.length){
       list.push(subList);
     }
-    console.log('list', JSON.stringify(list, null, 2));
+    // console.log('list', JSON.stringify(list, null, 2));
     return list;
   }
 
