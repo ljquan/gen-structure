@@ -2,7 +2,6 @@
 const apiFs = require("./api/fs.js");
 const fs = require("fs");
 const path = require("path");
-
 const regComment = /\/{2,}|\/[\*]+|[\*]+\/|^\s*[\*]+|[\*]+\s*|<!-{2,}|-{2,}>/g;
 /**
  * 计算注释文本属于介绍该代码文件说明的可能性的权重（概率）

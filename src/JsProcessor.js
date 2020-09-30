@@ -92,8 +92,8 @@ module.exports = class Processor extends AbstractProcessor {
     const getRequire = (flist) => {
       flist.forEach((item) => {
         if (item.type === "file" && item.ast && item.ast.length) {
+          let relDict = {};
           const file = path.relative(cwd, item.path).replace(/\.\w+$/, "");
-          importDict[file] = [];
           item.ast
             .filter((o) =>
               ["import", "require", "export-import"].includes(o.type)
@@ -106,7 +106,14 @@ module.exports = class Processor extends AbstractProcessor {
                   )
                 : ast.content;
               rel = rel.replace(/\.\w+$/, "");
-              importDict[file].push(rel);
+
+              if(!(file in importDict)){
+                importDict[file] = [];
+              }
+              if(!(rel in relDict)){
+                relDict[rel] = 1;
+                importDict[file].push(rel);
+              }
               let hasAdd = false;
               umlMap.forEach((arr) => {
                 if (arr[0] === rel) {
@@ -143,39 +150,69 @@ module.exports = class Processor extends AbstractProcessor {
     @enduml
     \`\`\``;
     }
-    return this.clustering(umlList).map(item=>getUMLString(item)).join('\n\n');
+    return this.clustering(umlList, importDict).map(item=>getUMLString(item)).join('\n\n');
   }
 
-  clustering(arr, res = []) {
-    if (arr.length === 0) {
-      return res;
-    }
-    const dict = {};
-    const list = [];
-    const dot = arr[0][0];
-    const line = {};
-    const left = arr.filter((a) => {
-      if (
-        a[0] === dot ||
-        (res.length > 2 && a.some((k) => k in dict)) ||
-        a[0] in dict
-      ) {
-        a.forEach((item, idx) => {
-          if (idx) {
-            dict[item] = 1;
-            const str = `[${a[idx - 1]}] -up-> [${item}]`;
-            if (!line[str]) {
-              line[str] = 1;
-              list.push(str);
-            }
-          }
+  clustering(arr, importDict) {
+    const dict = Object.assign({}, importDict);
+    // 递归添加子依赖
+    const addRel = function(arr, source){
+      if(dict[source] && dict[source].length){
+        const relList = dict[source];
+        delete dict[source];
+        relList.forEach(rel=>{
+          arr.push([source, rel]);
+          addRel(arr, rel);
         });
-        return false;
       }
-      return true;
-    });
-    res.push(list);
-    return this.clustering(left, res);
+    }
+    const clust = arr.map(item=>{
+      const subList = [];
+      let level = 0;
+      for(let i = item.length - 2; i >= 0; i--){
+        const o = item[i];
+        if(dict[o] && dict[o].length){
+          if(level){
+            level++;
+          }else{
+            level = 2;
+          }
+          addRel(subList, o);
+        }else{
+          break;
+        }
+      }
+      return {
+        level,
+        list: subList,
+        item,
+      };
+    }).filter(item=>item.level > 0 && item.list.length > 0);
+    console.log('clust', JSON.stringify(clust, null, 2))
+    let list = [];
+    let subList = [];
+    let relDict = {};
+    for(const item of clust){
+      if(subList.length === 0 || item.item.some(o=>!!relDict[o])){
+        item.list.forEach((sourceRel)=>{
+          subList.push(`[${sourceRel[0]}] -up-> [${sourceRel[1]}]`);
+        });
+        item.item.forEach(o=>relDict[o]=1);
+      }else{
+        list.push(subList);
+        subList = [];
+        relDict = {};
+        item.list.forEach((sourceRel)=>{
+          subList.push(`[${sourceRel[0]}] -up-> [${sourceRel[1]}]`);
+        });
+        item.item.forEach(o=>relDict[o]=1);
+      }
+    }
+    if(subList.length){
+      list.push(subList);
+    }
+    console.log('list', JSON.stringify(list, null, 2));
+    return list;
   }
 
 

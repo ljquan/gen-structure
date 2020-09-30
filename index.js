@@ -23,7 +23,7 @@ program.parse(process.argv);
 
 
 
-let exclude = 'node_modules|^\\..*|dist';
+let exclude = 'node_modules|^\\..*|dist|test';
 const option = {};
 let dir = path.resolve(program.path || process.cwd());
 
