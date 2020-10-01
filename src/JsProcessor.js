@@ -231,7 +231,13 @@ module.exports = class Processor extends AbstractProcessor {
       }
     }
   
-    countList = countList.sort((a, b) => a.level - b.level);
+    countList = countList.sort((a, b) => {
+      let ret = a.level - b.level;
+      if(ret === 0 ){
+        return a.count - b.count;
+      }
+      return ret;
+    });
 
     dict = Object.assign({}, importDict);
     // 递归添加子依赖
@@ -250,7 +256,7 @@ module.exports = class Processor extends AbstractProcessor {
     // 聚合
     const clust = [];
     let drawBackIndex = -1;
-    // console.log(countList);
+    // apiFs.writeFileSync(path.resolve(process.cwd(), 'countList.json'), JSON.stringify(countList, null, 2));
     countList.forEach((item, idx)=>{
       // 从一个中等规模的图开始画起：一个图通路少于10条，且层级少于5
       if(item.count < 10 && item.level < 5){
@@ -278,17 +284,24 @@ module.exports = class Processor extends AbstractProcessor {
     let list = [];
     let subList = [];
     for(const item of clust){
-      if(subList.length === 0){
-        item.forEach((sourceRel)=>{
-          subList.push(`[${sourceRel[0]}] -up-> [${sourceRel[1]}]`);
-        });
-      }else{
+      if (subList.length > 0) {
         list.push(subList);
         subList = [];
-        item.forEach((sourceRel)=>{
-          subList.push(`[${sourceRel[0]}] -up-> [${sourceRel[1]}]`);
-        });
       }
+      const edgeDict = {};
+      item.forEach((sourceRel) => {
+        const [source, rel] = sourceRel;
+        if (edgeDict[source]){
+          edgeDict[source]++;
+        } else {
+          edgeDict[source] = 1;
+        }
+        if (edgeDict[source] > Math.max(5, Math.floor(importDict[source].length / 2) || 0)) {
+          subList.push(`[${source}] --> [${rel}]`);
+        } else {
+          subList.push(`[${source}] -up-> [${rel}]`);
+        }
+      });
     }
     if(subList.length){
       list.push(subList);

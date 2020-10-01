@@ -27,7 +27,7 @@ module.exports = class AbstractProcessor {
       },
       {
         name: "require",
-        reg: /\brequire\(['"`]([^'"`]+)['"`]\)/,
+        reg: /(?<!\.)\brequire\(['"`]([^'"`]+)['"`]\)/,
         weight: 0,
         fun: (str) => {
           const arr = str.match(/\(['"`]([^'"`\s]+)['"`]\)/);
@@ -36,7 +36,7 @@ module.exports = class AbstractProcessor {
       },
       {
         name: "import",
-        reg: /\bimport\s[^'"`]+['"`]([^'"`]+)['"`]/,
+        reg: /(?<!\.)\bimport\s[^'"`]+['"`]([^'"`]+)['"`]/,
         weight: 0,
         fun: (str) => {
           const arr = str.match(/['"`]([^'"`\s]+)['"`]/);
@@ -46,7 +46,7 @@ module.exports = class AbstractProcessor {
       {
         // export * from 'xx'
         name: "export-import",
-        reg: /\bexport\s[^'"`]+\sfrom\s['"`]([^'"`\s]+)['"`]/,
+        reg: /(?<!\.)\bexport\s[^'"`]+\sfrom\s['"`]([^'"`\s]+)['"`]/,
         weight: 0,
         fun: (str) => {
           const arr = str.match(/['"`]([^'"`\s]+)['"`]/);
@@ -56,7 +56,7 @@ module.exports = class AbstractProcessor {
       {
         // export default'
         name: "export-default",
-        reg: /\bexport[\s]+default\b[^\{\n]*|\bmodule\.exports\b[^\{\n]*/,
+        reg: /(?<!\.)\bexport[\s]+default\b[^\{\n]*|\bmodule\.exports\b[^\{\n]*/,
         weight: 0,
         fun: (str) => str,
       },

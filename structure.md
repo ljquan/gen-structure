@@ -7,8 +7,8 @@
 [src/api/fs] -up-> [path]
 [src/api/fs] -up-> [readline]
 [src/AbstractProcessor] -up-> [path]
-[src/JsProcessor] -up-> [path]
-[src/JsProcessor] -up-> [src/api/fs]
+[src/JsProcessor] --> [path]
+[src/JsProcessor] --> [src/api/fs]
 @enduml
 ```
 ```plantuml
