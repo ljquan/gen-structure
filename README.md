@@ -32,3 +32,6 @@ Options:
   -e, --exclude <type>  忽略的路径，默认点开头、node_module的路径
   -i, --include <type>  加入被默认忽略的路径
   -h, --help            output usage information
+
+
+  
