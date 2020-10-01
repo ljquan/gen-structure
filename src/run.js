@@ -123,7 +123,7 @@ function addRelate(file, str) {
  * @param {Object} opt 选项
  */
 async function genStructure(dir, deep = 0, opt) {
-  console.log("processing", dir);
+  // console.log("processing", dir);
   let strList = [];
   const fileList = apiFs.getFile(dir);
   const dirList = apiFs.getDir(dir);

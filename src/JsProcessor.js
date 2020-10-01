@@ -1,6 +1,7 @@
 // 入口文件
 const AbstractProcessor = require("./AbstractProcessor");
 const path = require("path");
+const apiFs = require("./api/fs.js");
 
 const regComment = /\/{2,}|\/[\*]+|[\*]+\/|^\s*[\*]+|[\*]+\s*|<!-{2,}|-{2,}>/g;
 
@@ -86,9 +87,12 @@ module.exports = class Processor extends AbstractProcessor {
     if (!(fileList && fileList.length)) {
       throw new Error("未找到代码文件");
     }
+    // 依赖字典
     const importDict = {};
     const cwd = process.cwd();
     const umlMap = [];
+
+    // 递归获取依赖字典以及依赖链路
     const getRequire = (flist) => {
       flist.forEach((item) => {
         if (item.type === "file" && item.ast && item.ast.length) {
@@ -99,12 +103,13 @@ module.exports = class Processor extends AbstractProcessor {
               ["import", "require", "export-import"].includes(o.type)
             )
             .forEach((ast) => {
-              let rel = /[\.\/\\]/.test(ast.content)
+              let rel = /^[\.\/\\]/.test(ast.content)
                 ? path.relative(
                     cwd,
-                    path.resolve(path.parse(item.path).dir, ast.content)
+                    apiFs.resolve(path.resolve(path.parse(item.path).dir, ast.content))
                   )
                 : ast.content;
+
               rel = rel.replace(/\.\w+$/, "");
 
               if(!(file in importDict)){
@@ -114,6 +119,7 @@ module.exports = class Processor extends AbstractProcessor {
                 relDict[rel] = 1;
                 importDict[file].push(rel);
               }
+              // 把引用关系添加到引用链中
               let hasAdd = false;
               umlMap.forEach((arr) => {
                 if (arr[0] === rel) {
@@ -124,6 +130,7 @@ module.exports = class Processor extends AbstractProcessor {
                   hasAdd = true;
                 }
               });
+
               if (!hasAdd) {
                 umlMap.push([file, rel]);
               }
@@ -139,9 +146,21 @@ module.exports = class Processor extends AbstractProcessor {
     };
 
     getRequire(fileList);
+    // apiFs.writeFileSync(path.resolve(process.cwd(), 'fileList.json'), JSON.stringify(fileList, null, 2));
+    // apiFs.writeFileSync(path.resolve(process.cwd(), 'importDict.json'), JSON.stringify(importDict, null, 2));
     // console.log('importDict', JSON.stringify(importDict, null, 2));
-    const umlList = umlMap.sort((a, b) => b.length - a.length);
-    // console.log('umlList', umlList[0]);
+    // 把引用链长的排在前面
+    const linkDict = {};
+    const umlList = umlMap.sort((a, b) => b.length - a.length).filter(arr=>{
+      let ret = !(arr[0] in linkDict);
+      // 避免重复绘制，把前面已经在引用链中的链路去掉
+      for(let o of arr){
+        linkDict[o] = 1;
+      }
+      return ret;
+    });
+    // console.log('linkDict', JSON.stringify(linkDict, null, 2));
+    // console.log('umlList', JSON.stringify(umlList, null, 2));
     function getUMLString(list) {
       return `
     \`\`\`plantuml
@@ -150,75 +169,125 @@ module.exports = class Processor extends AbstractProcessor {
     @enduml
     \`\`\``;
     }
+    // apiFs.writeFileSync(path.resolve(process.cwd(), 'importDict.json'), JSON.stringify(this.clustering(umlList, importDict), null, 2));
+    // // console.log(JSON.stringify(this.clustering(umlList, importDict), null, 2));
+    // return '';
     return this.clustering(umlList, importDict).map(item=>getUMLString(item)).join('\n\n');
   }
 
   clustering(arr, importDict) {
-    const dict = Object.assign({}, importDict);
-    // 递归添加子依赖
-    const addRel = function(arr, source){
+    let dict = Object.assign({}, importDict);
+    const countDict = {};
+    // 递归添加子依赖链路
+    const addRel = function(subArr){
+      let list = [];
+      const source = subArr[subArr.length - 1];
       if(dict[source] && dict[source].length){
         const relList = dict[source];
         delete dict[source];
-        relList.forEach(rel=>{
+        relList.forEach(rel => {
+          const copyArr = subArr.slice();
+          copyArr.push(rel);
+          const pathList = addRel(copyArr);
+          list.push.apply(list, pathList);
+        });
+      } else {
+        list.push(subArr);
+      }
+      list = list.sort((a, b) => b.length - a.length);
+      if (countDict[source]) {
+        if (countDict[source].count < list.length) {
+          countDict[source] = {
+            count: list.length,
+            list
+          };
+        }
+      } else {
+        countDict[source] = {
+          count: list.length,
+          list
+        };
+      }
+      return list;
+    }
+    for(const item of arr){
+      // 从后往前绘图，便于减少颗粒度
+      addRel([item[0]]);
+    }
+    // 计算路径数量及深度
+    let countList = [];
+    for(const key of Object.keys(countDict)){
+      if (countDict[key].count > 1) {
+        const countItem = countDict[key];
+        const level = Math.max.apply(null, countItem.list.map(o => o.length - o.lastIndexOf(key)));
+        countItem.level = level;
+        countList.push({
+          key,
+          // 路径数量
+          count: countDict[key].count,
+          // 深度
+          level
+        });
+      }
+    }
+  
+    countList = countList.sort((a, b) => a.level - b.level);
+
+    dict = Object.assign({}, importDict);
+    // 递归添加子依赖
+    const drawEdge = function (arr, source) {
+      if (dict[source] && dict[source].length) {
+        const relList = dict[source];
+        delete dict[source];
+        relList.forEach(rel => {
           arr.push([source, rel]);
-          addRel(arr, rel);
+          if ((!countDict[rel]) || (!countDict[source]) || (countDict[rel].level < countDict[source].level)) {
+            drawEdge(arr, rel);
+          }
         });
       }
     }
     // 聚合
     const clust = [];
-    for(const item of arr){
+    let drawBackIndex = -1;
+    // console.log(countList);
+    countList.forEach((item, idx)=>{
+      // 从一个中等规模的图开始画起：一个图通路少于10条，且层级少于5
+      if(item.count < 10 && item.level < 5){
+        drawBackIndex = idx;
+      }else{
+        // console.log(item);
+        let subList = [];
+        drawEdge(subList, item.key);
+        if (subList.length > 0) {
+          clust.push(subList);
+        }
+      }
+    });
+    for (; drawBackIndex >= 0; drawBackIndex--) {
+      const item = countList[drawBackIndex];
       let subList = [];
-      let level = 0;
-      for(let i = item.length - 2; i >= 0; i--){
-        const o = item[i];
-        // console.log(o, dict[o]);
+      drawEdge(subList, item.key);
+      if (subList.length > 0) {
+        clust.push(subList);
+      }
 
-        if(level){
-          level++;
-        }else{
-          level = 2;
-        }
-        // console.log('subList.length', subList.length, 'i', i, 'clust', clust.length);
-        if(subList.length > 10 && i > 2){
-          clust.push({
-            level,
-            list: subList,
-            item: item.slice(i),
-          });
-          subList = [];
-          level = 0;
-        }
-        addRel(subList, o);
-      }
-      if(level > 0 && subList.length > 0){
-        clust.push({
-          level,
-          list: subList,
-          item,
-        });
-      }
     }
 
     // console.log('clust', JSON.stringify(clust, null, 2))
     let list = [];
     let subList = [];
-    let relDict = {};
     for(const item of clust){
       if(subList.length === 0){
-        item.list.forEach((sourceRel)=>{
+        item.forEach((sourceRel)=>{
           subList.push(`[${sourceRel[0]}] -up-> [${sourceRel[1]}]`);
         });
-        item.item.forEach(o=>relDict[o]=1);
       }else{
         list.push(subList);
         subList = [];
-        relDict = {};
-        item.list.forEach((sourceRel)=>{
+        item.forEach((sourceRel)=>{
           subList.push(`[${sourceRel[0]}] -up-> [${sourceRel[1]}]`);
         });
-        item.item.forEach(o=>relDict[o]=1);
       }
     }
     if(subList.length){

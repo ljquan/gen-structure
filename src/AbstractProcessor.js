@@ -328,7 +328,7 @@ module.exports = class AbstractProcessor {
     let newList = [];
     const parseAst = (item)=>{
       let newItem = Object.assign({}, item);
-      console.log(item.path);
+      // console.log(item.path);
       if (item.type === "file") {
         if (this.acceptFile(newItem.name)) {
           newItem.ast = this.parse(apiFs.readFileSync(item.path));

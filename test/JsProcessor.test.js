@@ -7,7 +7,7 @@ const processor = new JsProcessor(path.resolve(__dirname, "../"), {
 
 describe("parse", () => {
   test("class", () => {
-    const source = path.resolve(__dirname, "./fixture/common.ts");
+    const source = path.resolve(__dirname, "./fixture/class.ts");
     const txt = apiFs.readFileSync(source);
     const ast = processor.parse(txt);
     // console.log(processor.getDocument(ast))

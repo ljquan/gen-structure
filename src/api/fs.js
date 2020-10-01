@@ -33,6 +33,41 @@ function getDir(dir) {
   return results;
 }
 
+// 类似require.resolve，获得最可能的文件
+function resolve(filePath) {
+  let results = [];
+  try{
+    let state = fs.statSync(filePath);
+    if (state.isDirectory()){
+      filePath = path.resolve(filePath, 'index');
+    }
+  }catch(e){
+    // noop
+  }
+  const fileState = path.parse(filePath);
+  // console.log(fileState);
+  let list = fs.readdirSync(fileState.dir);
+  list.forEach(function (file) {
+    const state = path.parse(file);
+    if (fileState.base === state.base) {
+      results.push({
+          base: state.base,
+          weigth: 3
+      });
+    } else if (fileState.name === state.name) {
+      results.push({
+        base: state.base,
+        weigth: /js|ts/.test(state.ext) ? 2 : (state.ext === 'vue' ? 1 : 0)
+      });
+    }
+  });
+  const file =results.sort((a, b) => b.weigth - a.weigth)[0];
+  if(file){
+    return path.resolve(fileState.dir, file.base);
+  }
+  return filePath;
+}
+
 //获取当前目录下的文件
 function getFile(dir) {
   const results = [];
@@ -170,5 +205,6 @@ module.exports = {
   append,
   readLine,
   getFileAndDir,
+  resolve,
 };
 

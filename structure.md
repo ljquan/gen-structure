@@ -1,13 +1,21 @@
 # 依赖关系
 ```plantuml
 @startuml
+[src/JsProcessor] -up-> [src/AbstractProcessor]
+[src/AbstractProcessor] -up-> [src/api/fs]
 [src/api/fs] -up-> [fs-extra]
 [src/api/fs] -up-> [path]
 [src/api/fs] -up-> [readline]
-[src/AbstractProcessor] -up-> [src/api/fs]
 [src/AbstractProcessor] -up-> [path]
-[src/JsProcessor] -up-> [src/AbstractProcessor]
 [src/JsProcessor] -up-> [path]
+[src/JsProcessor] -up-> [src/api/fs]
+@enduml
+```
+```plantuml
+@startuml
+[src/run] -up-> [src/api/fs]
+[src/run] -up-> [fs]
+[src/run] -up-> [path]
 @enduml
 ```
 ```plantuml
@@ -17,13 +25,6 @@
 [index] -up-> [package]
 [index] -up-> [src/api/fs]
 [index] -up-> [src/JsProcessor]
-@enduml
-```
-```plantuml
-@startuml
-[src/run] -up-> [src/api/fs]
-[src/run] -up-> [fs]
-[src/run] -up-> [path]
 @enduml
 ```
 # 代码说明
