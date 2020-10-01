@@ -22,7 +22,7 @@ module.exports = class AbstractProcessor {
       },
       {
         name: "regexp",
-        reg: /(?!\/\/)\/([^\n\\\/]|\\\/)+(?<!\\)\//,
+        reg: /(?!\/\/)\/([^\n\\\/]|\\\/|\\\w)+\//,
         weight: 4,
       },
       {
@@ -90,9 +90,9 @@ module.exports = class AbstractProcessor {
     const numList = [];
     // 符号列表
     const symbolList = [];
-    console.log('parse', this.parseReg);
+    // console.log('parse', this.parseReg);
     text.replace(this.parseReg, (str, ...args) => {
-      console.log(str);
+      // console.log(str);
       const lastItem = list[list.length - 1] || {};
       const pos = args[args.length - 2];
       // 上次结束的位置为本次开始位置
