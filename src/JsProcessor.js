@@ -3,8 +3,11 @@ const AbstractProcessor = require("./AbstractProcessor");
 const path = require("path");
 const apiFs = require("./api/fs.js");
 
-const regComment = /\/{2,}|\/[\*]+|[\*]+\/|^\s*[\*]+|[\*]+\s*|<!-{2,}|-{2,}>/g;
+const regComment = /^\/{2,}|^\/[\*]+|^[\*]+\/|^\s*[\*]+|^[\*]+\s*|<!-{2,}|-{2,}>/g;
 
+function isChinese(text){
+  return /[\u4e00-\u9fa5]/.test(text) && !/上午|下午/.test(text);
+}
 module.exports = class Processor extends AbstractProcessor {
   constructor(dir, opt) {
     super(dir, opt);
@@ -34,6 +37,22 @@ module.exports = class Processor extends AbstractProcessor {
     return text.length > 50 ? 0 : text.length / 50;
   }
   /**
+   * 比较2段注释，看哪个更相关
+   * @param {string} atext a注释文案
+   * @param {string} btext b注释文案
+   */
+  compareComent(atext, btext){
+    const aIsChinese = isChinese(atext);
+    const bIsChinese = isChinese(btext);
+    if(bIsChinese && !aIsChinese){
+      return 1;
+    }
+    if (!bIsChinese && aIsChinese) {
+      return -1;
+    }
+    return this.getWeight(btext) - this.getWeight(atext);
+  }
+  /**
    * 获取单行注释说明
    * @param {string} text 一段注释内容
    */
@@ -45,10 +64,9 @@ module.exports = class Processor extends AbstractProcessor {
         return {
           origin: line,
           clean: str,
-          weight: this.getWeight(str),
         };
       })
-      .sort((a, b) => b.weight - a.weight)[0];
+      .sort((a, b) => this.compareComent(a.clean, b.clean))[0];
   }
   /**
    * 获取一个文件的说明注释
@@ -72,7 +90,7 @@ module.exports = class Processor extends AbstractProcessor {
     }
     list = list
       .map((item) => this.getSingleComment(item.content))
-      .sort((a, b) => b.weight - a.weight);
+      .sort((a, b) => this.compareComent(a.clean, b.clean));
     // console.log(list);
 
     const item = list[0];
