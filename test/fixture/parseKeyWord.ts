@@ -1,5 +1,5 @@
 /**
- * 关键词：'if', 'switch', 'with', 'catch', 'for', 'while', 'void'等不被误判
+ * 关键词：'if', 'switch', 'with', 'catch', 'for', 'while', 'void'等不被误判 
  */
 
 let hello = 1;

@@ -30,10 +30,6 @@ module.exports = class Processor extends AbstractProcessor {
     if (/用|是|为/.test(text)) {
       return 8;
     }
-    if (/[\u4e00-\u9fa5]/.test(text) && !/上午|下午/.test(text)) {
-      // 自动生成注释可能包含中文时间
-      return text.length / 10;
-    }
     return text.length > 50 ? 0 : text.length / 50;
   }
   /**
@@ -41,7 +37,7 @@ module.exports = class Processor extends AbstractProcessor {
    * @param {string} atext a注释文案
    * @param {string} btext b注释文案
    */
-  compareComent(atext, btext){
+  compareComment(atext, btext){
     const aIsChinese = isChinese(atext);
     const bIsChinese = isChinese(btext);
     if(bIsChinese && !aIsChinese){
@@ -66,7 +62,7 @@ module.exports = class Processor extends AbstractProcessor {
           clean: str,
         };
       })
-      .sort((a, b) => this.compareComent(a.clean, b.clean))[0];
+      .sort((a, b) => this.compareComment(a.clean, b.clean))[0];
   }
   /**
    * 获取一个文件的说明注释
@@ -90,7 +86,7 @@ module.exports = class Processor extends AbstractProcessor {
     }
     list = list
       .map((item) => this.getSingleComment(item.content))
-      .sort((a, b) => this.compareComent(a.clean, b.clean));
+      .sort((a, b) => this.compareComment(a.clean, b.clean));
     // console.log(list);
 
     const item = list[0];

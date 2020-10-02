@@ -84,6 +84,8 @@ module.exports = class AbstractProcessor {
    * @param {string} text 源码内容
    */
   parse(text) {
+    // 避免window与mac换行符不一致
+    text = text.replace(/\r\n/g, '\n');
     let list = [];
     let lastEndPos = 0;
     // 数字列表
@@ -109,10 +111,11 @@ module.exports = class AbstractProcessor {
           item = {
             type: "class",
             name: arr[1],
-            constent: arr[0],
+            content: arr[0],
             pos: startPos + (arr.index || 0),
             searchStartPost: startPos,
-            searchEndPost: lastEndPos,
+            searchEndPost: lastEndPos, // { 括号后面的位置
+            bracketsStart: pos, // { 括号前面的位置
             children: [],
           };
         } else {
@@ -147,6 +150,7 @@ module.exports = class AbstractProcessor {
               pos: startPos + (arr.index || 0),
               searchStartPost: startPos,
               searchEndPost: lastEndPos,
+              bracketsStart: pos,
             };
           } else {
             arr = skipStr.match(/[^;\n]*\b([^\s=]+)\s*=\s*$/);
@@ -158,6 +162,7 @@ module.exports = class AbstractProcessor {
                 pos: startPos + (arr.index || 0),
                 searchStartPost: startPos,
                 searchEndPost: lastEndPos,
+                bracketsStart: pos,
               };
             } else if(!skipStr && lastItem.type === 'export-default'){
               item = lastItem;
@@ -166,21 +171,12 @@ module.exports = class AbstractProcessor {
           }
         }
         if (item) {
-          // 确保纯粹。不会在他上面多一行代码
-          if (skipStr.trim().indexOf("\n") === -1 && list.length) {
-            // 这种情况下，上一个comment，大概率是该class或function的注释
-            if (lastItem.type === "comment" &&
-              lastItem.searchEndPost === item.searchStartPost
-            ) {
-              list.pop();
-              item.comment = lastItem;
-            }
-          }
           numList.push(item);
         } else {
           numList.push({
             pos: pos,
             txt: skipStr,
+            bracketsStart: pos,
           });
         }
         symbolList.push("{");
@@ -189,8 +185,12 @@ module.exports = class AbstractProcessor {
         symbolList.pop();
         const item = numList.pop();
         if (item) {
+          item.bracketsEnd = pos;
           list = list.filter((o) => {
-            if (o.type === "comment" && o.pos > item.pos) {
+            if (o.type === "comment" && o.pos > item.bracketsStart && o.pos < item.bracketsEnd){ 
+              item.children = item.children || [];
+              item.children.push(o);
+              // 括号内的注释
               return false;
             }
             return true;
@@ -219,20 +219,51 @@ module.exports = class AbstractProcessor {
               searchStartPost: startPos,
               searchEndPost: lastEndPos,
             };
-            if (lastItem.type === "comment" &&
-              lastItem.searchEndPost === element.searchStartPost
-              && element.type !== "comment"
-            ) {
-              list.pop();
-              element.comment = lastItem;
-            }
             list.push(element);
           }
           return "";
         }
       }
     });
-    return list;
+
+    // 处理注释归属
+    const processComment = (arrAst) =>{
+      const sortArr = arrAst.sort((a, b)=>a.pos - b.pos);
+      return sortArr.filter((item, idx, self)=>{
+        if(item.type === 'comment'){
+          const belongPre = text.substring(item.searchStartPost, item.pos).indexOf('\n') === -1;
+          if(belongPre){
+            const preItem = self[idx - 1];
+            if(preItem && preItem.searchEndPost === item.searchStartPost
+                && preItem.type !== "comment"){
+                  preItem.comment = item;
+                  return false;
+                }
+          } else {
+            const nextItem = self[idx + 1];
+            if(nextItem && item.searchEndPost === nextItem.searchStartPost
+                && nextItem.type !== "comment"){
+                  nextItem.comment = item;
+                  return false;
+                }
+          }
+        }else if('bracketsStart' in item && item.children && item.children.length){
+          if(!item.comment){
+            const firstChildren = item.children[0];
+            if(firstChildren.type === 'comment'){
+              const belongPre = text.substring(firstChildren.searchStartPost, firstChildren.pos).indexOf('\n') === -1;
+              if(belongPre){
+                item.comment = firstChildren;
+                item.children.shift();
+              }
+            }
+          }
+          item.children = processComment(item.children);
+        }
+        return true;
+      });
+    }
+    return processComment(list);
   }
 
   /**

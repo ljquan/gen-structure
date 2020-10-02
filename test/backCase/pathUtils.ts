@@ -1,4 +1,5 @@
-import slash from 'slash'
+// 路径处理工具
+import slash from 'slash'  // 转换window系统的反斜杠路径为斜杠路径
 import qs, { ParsedUrlQuery } from 'querystring'
 import resolve from 'resolve'
 import { supportedExts } from '../resolver'
@@ -19,7 +20,7 @@ export const resolveFrom = (root: string, id: string) =>
 
 export const queryRE = /\?.*$/
 export const hashRE = /#.*$/
-
+// 清理url中的query和hash
 export const cleanUrl = (url: string) =>
   url.replace(hashRE, '').replace(queryRE, '')
 
