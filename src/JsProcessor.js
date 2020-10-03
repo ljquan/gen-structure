@@ -2,6 +2,7 @@
 const AbstractProcessor = require("./AbstractProcessor");
 const path = require("path");
 const apiFs = require("./api/fs.js");
+const slash = require("slash");
 
 const regComment = /^\/{2,}|^\/[\*]+|^[\*]+\/|^\s*[\*]+|^[\*]+\s*|<!-{2,}|-{2,}>/g;
 
@@ -111,17 +112,17 @@ module.exports = class Processor extends AbstractProcessor {
       flist.forEach((item) => {
         if (item.type === "file" && item.ast && item.ast.length) {
           let relDict = {};
-          const file = path.relative(cwd, item.path).replace(/\.\w+$/, "");
+          const file = slash(path.relative(cwd, item.path).replace(/\.\w+$/, ""));
           item.ast
             .filter((o) =>
               ["import", "require", "export-import"].includes(o.type)
             )
             .forEach((ast) => {
               let rel = /^[\.\/\\]/.test(ast.content)
-                ? path.relative(
+                ? slash(path.relative(
                     cwd,
                     apiFs.resolve(path.resolve(path.parse(item.path).dir, ast.content))
-                  )
+                  ))
                 : ast.content;
 
               rel = rel.replace(/\.\w+$/, "");

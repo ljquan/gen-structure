@@ -22,13 +22,13 @@
   "license": "ISC",
   "dependencies": {
     "commander": "^2.20.0",
-    "fs-extra": "^7.0.1"
+    "fs-extra": "^7.0.1",
+    "slash": "^3.0.0"
   },
   "jest": {
     "testRegex": "/test/.*.test.jsx?$"
   },
   "devDependencies": {
-    "jest": "^26.4.2",
-    "slash": "^3.0.0"
+    "jest": "^26.4.2"
   }
 }
