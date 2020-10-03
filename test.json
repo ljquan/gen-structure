@@ -1,79 +1,121 @@
 [
   {
-    "pos": 0,
+    "pos": 3,
     "type": "comment",
     "content": "// 文件注释",
     "searchStartPost": 0,
-    "searchEndPost": 7
+    "searchEndPost": 10
+  },
+  {
+    "pos": 11,
+    "type": "comment",
+    "content": "// import 注释0",
+    "searchStartPost": 10,
+    "searchEndPost": 24
+  },
+  {
+    "pos": 45,
+    "type": "require",
+    "content": "../src/JsProcessor.js",
+    "searchStartPost": 24,
+    "searchEndPost": 77,
+    "comment": {
+      "pos": 80,
+      "type": "comment",
+      "content": "//import 注释",
+      "searchStartPost": 77,
+      "searchEndPost": 91
+    }
+  },
+  {
+    "pos": 93,
+    "type": "comment",
+    "content": "//import 注释2",
+    "searchStartPost": 91,
+    "searchEndPost": 105
+  },
+  {
+    "pos": 132,
+    "type": "require",
+    "content": "../src/AbstractProcessor.js",
+    "searchStartPost": 105,
+    "searchEndPost": 170,
+    "comment": {
+      "pos": 173,
+      "type": "comment",
+      "content": "//import 注释3",
+      "searchStartPost": 170,
+      "searchEndPost": 185
+    }
   },
   {
     "type": "object",
     "name": "definedObject",
     "content": "const definedObject",
-    "pos": 16,
-    "searchStartPost": 15,
-    "searchEndPost": 39,
-    "bracketsStart": 38,
+    "pos": 194,
+    "searchStartPost": 193,
+    "searchEndPost": 217,
+    "bracketsStart": 216,
     "children": [
       {
         "type": "function",
         "name": "hello",
         "content": "    hello() ",
-        "pos": 54,
-        "searchStartPost": 53,
-        "searchEndPost": 67,
-        "bracketsStart": 66,
-        "bracketsEnd": 113,
+        "pos": 232,
+        "searchStartPost": 231,
+        "searchEndPost": 245,
+        "bracketsStart": 244,
+        "bracketsEnd": 291,
         "children": [
           {
-            "pos": 76,
+            "pos": 254,
             "type": "comment",
             "content": "// 注释 4.1.1",
-            "searchStartPost": 67,
-            "searchEndPost": 87
+            "searchStartPost": 245,
+            "searchEndPost": 265
           }
         ],
         "comment": {
-          "pos": 44,
+          "pos": 222,
           "type": "comment",
           "content": "// 注释 4.1",
-          "searchStartPost": 39,
-          "searchEndPost": 53
+          "searchStartPost": 217,
+          "searchEndPost": 231
         }
       }
     ],
-    "bracketsEnd": 117,
+    "bracketsEnd": 295,
     "comment": {
-      "pos": 8,
+      "pos": 186,
       "type": "comment",
       "content": "// 对象注释",
-      "searchStartPost": 7,
-      "searchEndPost": 15
+      "searchStartPost": 185,
+      "searchEndPost": 193
     }
   },
   {
-    "pos": 137,
+    "pos": 315,
     "type": "export-default",
     "content": "module.exports = ",
-    "searchStartPost": 136,
-    "searchEndPost": 154,
+    "searchStartPost": 314,
+    "searchEndPost": 332,
     "children": [
       {
         "type": "function",
         "name": "hello",
         "content": "  hello()",
-        "pos": 156,
-        "searchStartPost": 155,
-        "searchEndPost": 166,
-        "bracketsStart": 165,
-        "bracketsEnd": 181,
+        "pos": 334,
+        "searchStartPost": 333,
+        "searchEndPost": 344,
+        "bracketsStart": 343,
+        "bracketsEnd": 359,
         "children": [
           {
-            "pos": 171,
+            "pos": 349,
             "type": "comment",
             "content": "// noop",
-            "searchStartPost": 166,
-            "searchEndPost": 178
+            "searchStartPost": 344,
+            "searchEndPost": 356
           }
         ]
       },
@@ -81,77 +123,77 @@
         "type": "function",
         "name": "world",
         "content": "  world()",
-        "pos": 184,
-        "searchStartPost": 182,
-        "searchEndPost": 194,
-        "bracketsStart": 193,
+        "pos": 362,
+        "searchStartPost": 360,
+        "searchEndPost": 372,
+        "bracketsStart": 371,
         "children": [
           {
             "type": "function",
             "name": "innerFun",
             "content": "    const innerFun = function()",
-            "pos": 207,
-            "searchStartPost": 206,
-            "searchEndPost": 239,
-            "bracketsStart": 238,
-            "bracketsEnd": 253,
+            "pos": 385,
+            "searchStartPost": 384,
+            "searchEndPost": 417,
+            "bracketsStart": 416,
+            "bracketsEnd": 431,
             "children": [
               {
-                "pos": 246,
+                "pos": 424,
                 "type": "comment",
                 "content": "//",
-                "searchStartPost": 239,
-                "searchEndPost": 248
+                "searchStartPost": 417,
+                "searchEndPost": 426
               }
             ]
           },
           {
-            "pos": 199,
+            "pos": 377,
             "type": "comment",
             "content": "// 内部函数",
-            "searchStartPost": 194,
-            "searchEndPost": 206
+            "searchStartPost": 372,
+            "searchEndPost": 384
           }
         ],
-        "bracketsEnd": 257
+        "bracketsEnd": 435
       }
     ],
-    "bracketsEnd": 259,
+    "bracketsEnd": 437,
     "comment": {
-      "pos": 121,
+      "pos": 299,
       "type": "comment",
       "content": "/**\n * 导出对象\n */",
-      "searchStartPost": 118,
-      "searchEndPost": 136
+      "searchStartPost": 296,
+      "searchEndPost": 314
     }
   },
   {
     "type": "object",
     "name": "exportObj",
     "content": "export const exportObj",
-    "pos": 265,
-    "searchStartPost": 260,
-    "searchEndPost": 291,
-    "bracketsStart": 290,
+    "pos": 443,
+    "searchStartPost": 438,
+    "searchEndPost": 469,
+    "bracketsStart": 468,
     "children": [
       {
         "type": "function",
         "name": "expFun",
         "content": "  expFun()",
-        "pos": 316,
-        "searchStartPost": 315,
-        "searchEndPost": 327,
-        "bracketsStart": 326,
-        "bracketsEnd": 331,
+        "pos": 494,
+        "searchStartPost": 493,
+        "searchEndPost": 505,
+        "bracketsStart": 504,
+        "bracketsEnd": 509,
         "comment": {
-          "pos": 294,
+          "pos": 472,
           "type": "comment",
           "content": "/**\n   * expFun\n   */",
-          "searchStartPost": 291,
-          "searchEndPost": 315
+          "searchStartPost": 469,
+          "searchEndPost": 493
         }
       }
     ],
-    "bracketsEnd": 333
+    "bracketsEnd": 511
   }
 ]

@@ -231,6 +231,7 @@ module.exports = class AbstractProcessor {
       const sortArr = arrAst.sort((a, b)=>a.pos - b.pos);
       return sortArr.filter((item, idx, self)=>{
         if(item.type === 'comment'){
+          // 文件开头的注释，belongPre是true因为searchStartPost和pos都是0。这里的逻辑回归为文件注释
           const belongPre = text.substring(item.searchStartPost, item.pos).indexOf('\n') === -1;
           if(belongPre){
             const preItem = self[idx - 1];
@@ -239,10 +240,16 @@ module.exports = class AbstractProcessor {
                   preItem.comment = item;
                   return false;
                 }
-          } else {
+          } else {    
             const nextItem = self[idx + 1];
             if(nextItem && item.searchEndPost === nextItem.searchStartPost
                 && nextItem.type !== "comment"){
+                  const nextCommentItem = self[idx + 2];
+                  if(nextCommentItem && nextCommentItem.searchStartPost === nextItem.searchEndPost
+                      && nextCommentItem.type === "comment"){
+                        // 段注释与行注释，优先选行注释
+                        return true;
+                      }
                   nextItem.comment = item;
                   return false;
                 }
