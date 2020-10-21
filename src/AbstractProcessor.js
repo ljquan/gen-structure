@@ -11,7 +11,7 @@ module.exports = class AbstractProcessor {
     const reg = (this.astReg = [
       {
         name: "string",
-        reg: /"([^\"]*(\\.)?)*"|'([^\']*(\\.)?)*'|`([^\`]*(\\.)?)*`/,
+        reg: /"([^\\"]*(\\.)?(\\")?)*"|'([^\\']*(\\.)?(\\')?)*'|`([^\\`]*(\\.)?(\\`)?)*`/,
         weight: 3,
       },
       {
@@ -187,7 +187,7 @@ module.exports = class AbstractProcessor {
         if (item) {
           item.bracketsEnd = pos;
           list = list.filter((o) => {
-            if (o.type === "comment" && o.pos > item.bracketsStart && o.pos < item.bracketsEnd){ 
+            if (o.type === "comment" && o.pos > item.bracketsStart && o.pos < item.bracketsEnd){
               item.children = item.children || [];
               item.children.push(o);
               // 括号内的注释
@@ -240,7 +240,7 @@ module.exports = class AbstractProcessor {
                   preItem.comment = item;
                   return false;
                 }
-          } else {    
+          } else {
             const nextItem = self[idx + 1];
             if(nextItem && item.searchEndPost === nextItem.searchStartPost
                 && nextItem.type !== "comment"){
