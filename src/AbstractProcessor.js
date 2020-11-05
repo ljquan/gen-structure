@@ -8,6 +8,7 @@ module.exports = class AbstractProcessor {
     this.dir = path.resolve(dir);
     this.opt = opt;
     this.umlMap = [];
+    // (t = /url\([\'\"](.+)[\'\"]\)/gi.exec(e.backgroundImage))
     const reg = (this.astReg = [
       {
         name: "string",
@@ -22,7 +23,7 @@ module.exports = class AbstractProcessor {
       },
       {
         name: "regexp",
-        reg: /(?!\/\/)\/([^\n\\\/]|\\\/|\\\w)+\//,
+        reg: /(?!\/\/)\/([^\n\/\\]|\\\/|\\[\w'"`(){}\[\]])+\//,
         weight: 4,
       },
       {
@@ -366,7 +367,7 @@ module.exports = class AbstractProcessor {
     let newList = [];
     const parseAst = (item)=>{
       let newItem = Object.assign({}, item);
-      // console.log(item.path);
+      console.log(item.path);
       if (item.type === "file") {
         if (this.acceptFile(newItem.name)) {
           newItem.ast = this.parse(apiFs.readFileSync(item.path));
