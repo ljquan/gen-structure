@@ -45,22 +45,25 @@ function resolve(filePath) {
     // noop
   }
   const fileState = path.parse(filePath);
-  // console.log(fileState);
-  let list = fs.readdirSync(fileState.dir);
-  list.forEach(function (file) {
-    const state = path.parse(file);
-    if (fileState.base === state.base) {
-      results.push({
+  try{
+    let list = fs.readdirSync(fileState.dir);
+    list.forEach(function (file) {
+      const state = path.parse(file);
+      if (fileState.base === state.base) {
+        results.push({
+            base: state.base,
+            weigth: 3
+        });
+      } else if (fileState.name === state.name) {
+        results.push({
           base: state.base,
-          weigth: 3
-      });
-    } else if (fileState.name === state.name) {
-      results.push({
-        base: state.base,
-        weigth: /js|ts/.test(state.ext) ? 2 : (state.ext === 'vue' ? 1 : 0)
-      });
-    }
-  });
+          weigth: /js|ts/.test(state.ext) ? 2 : (state.ext === 'vue' ? 1 : 0)
+        });
+      }
+    });
+  }catch(e){
+    // noop
+  }
   const file =results.sort((a, b) => b.weigth - a.weigth)[0];
   if(file){
     return path.resolve(fileState.dir, file.base);

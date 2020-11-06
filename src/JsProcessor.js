@@ -245,7 +245,7 @@ module.exports = class Processor extends AbstractProcessor {
         });
       }
     }
-  
+
     countList = countList.sort((a, b) => {
       let ret = a.level - b.level;
       if(ret === 0 ){
