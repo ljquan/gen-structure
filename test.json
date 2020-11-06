@@ -1,19 +1,24 @@
 [
   {
-    "pos": 0,
-    "type": "comment",
-    "content": "// bad certificate",
-    "searchStartPost": 0,
-    "searchEndPost": 18
-  },
-  {
     "type": "object",
-    "name": "error",
-    "content": "error",
-    "pos": 19,
-    "searchStartPost": 18,
-    "searchEndPost": 28,
-    "bracketsStart": 27,
-    "bracketsEnd": 867
+    "name": "param",
+    "content": "const param",
+    "pos": 183,
+    "searchStartPost": 154,
+    "searchEndPost": 198,
+    "bracketsStart": 197,
+    "children": [
+      {
+        "type": "object",
+        "name": "IParamParseOptions",
+        "content": "    options: IParamParseOptions",
+        "pos": 226,
+        "searchStartPost": 198,
+        "searchEndPost": 261,
+        "bracketsStart": 260,
+        "bracketsEnd": 277
+      }
+    ],
+    "bracketsEnd": 290
   }
 ]

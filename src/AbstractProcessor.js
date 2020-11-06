@@ -23,7 +23,7 @@ module.exports = class AbstractProcessor {
       },
       {
         name: "regexp",
-        reg: /(?!\/\/)\/([^\n\/\\]|\\\/|\\[\w'"`(){}\[\]])+\//,
+        reg: /(?!\/\/)\/([^\n\/\\]|\\\/|\\[^\s])+\//,
         weight: 4,
       },
       {
